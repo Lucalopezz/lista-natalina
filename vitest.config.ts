@@ -5,6 +5,7 @@ export default defineConfig({
     environment: "node",
     include: ["src/**/*.test.ts"],
     clearMocks: true,
+    exclude: process.env.INTEGRATION_DATABASE_URL ? [] : ["**/*.integration.test.ts"],
     coverage: {
       provider: "v8",
       include: ["src/lib/**/*.ts"],
