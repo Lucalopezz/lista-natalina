@@ -15,7 +15,7 @@ trap cleanup EXIT INT TERM
 # tmpfs reserva capacidade em memória, sem ocupar HD. 1 GiB também comporta
 # a margem de espaço para índices de versões MongoDB que exigem 500 MiB livres.
 docker run -d --name "$container" --tmpfs /data/db:rw,size=1g \
-  -p 127.0.0.1::27017 mongo:8.0.34 --replSet rs0 --bind_ip_all >/dev/null
+  -p 127.0.0.1::27017 mongo:7.0.45 --replSet rs0 --bind_ip_all >/dev/null
 wait_for_mongo() {
   for attempt in $(seq 1 30); do
     if docker exec "$container" mongosh --quiet --eval "$1" >/dev/null 2>&1; then return 0; fi

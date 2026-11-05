@@ -48,7 +48,7 @@ pnpm test:integration     # MongoDB novo, isolado, em memória (Docker)
 pnpm test:e2e             # Build e navegador com outro MongoDB descartável
 ```
 
-Os runners de integração/E2E não usam o banco do `.env`: criam containers com tmpfs e portas aleatórias, sobrescrevem as variáveis no processo de teste e limpam somente recursos próprios. Reutilizam a imagem `mongo:8.0.34` quando já disponível. E2E usa Chromium local quando instalado; caso contrário, `pnpm exec playwright install chromium`. Capturas e traces ficam em `test-results`, ignorado pelo Git.
+Os runners de integração/E2E não usam o banco do `.env`: criam containers com tmpfs e portas aleatórias, sobrescrevem as variáveis no processo de teste e limpam somente recursos próprios. Reutilizam a imagem `mongo:7.0.45` quando já disponível. E2E usa Chromium local quando instalado; caso contrário, `pnpm exec playwright install chromium`. Capturas e traces ficam em `test-results`, ignorado pelo Git.
 
 `db:check` consulta ping/topologia, fecha a conexão e não imprime URI, hosts, credenciais ou documentos; não cria coleções/índices/dados. Verificação de topologia não substitui testes de transações reais.
 
@@ -64,6 +64,6 @@ Estilos usam Tailwind CSS. Tokens da paleta natalina estão em `src/app/globals.
 
 Projeto único Next.js/Node.js 24, sem processos permanentes ou armazenamento local persistente. Build `pnpm build`, instalação `pnpm install --frozen-lockfile`, saída padrão do Next.js. Configurar envs privadas por ambiente, origem HTTPS exata e segredo próprio. Não compartilhar URI de produção com previews automaticamente. Deploy ainda não realizado.
 
-Mantenha Functions próximas ao MongoDB; use TLS e permissões/rede restritas. Pool máximo 10 por instância, timeout total de operações 10 segundos. Não existe um único pool compartilhado por todas as Functions; dimensionar conexões do Atlas conforme concorrência.
+Mantenha Functions próximas ao MongoDB; use TLS e permissões/rede restritas. Pool máximo 10 por instância, timeout de seleção de servidor e de espera pelo pool de 5 segundos. Não existe um único pool compartilhado por todas as Functions; dimensionar conexões do Atlas conforme concorrência.
 
 GitHub Actions roda lint, tipos, unidade, build, integração e E2E em bancos descartáveis, sem credenciais de produção. O pnpm-workspace.yaml autoriza esbuild e registra uma exceção de idade para a versão exata de Vite já resolvida; não desabilita a política global de dependências.

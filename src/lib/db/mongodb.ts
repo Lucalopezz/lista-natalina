@@ -15,8 +15,6 @@ export function getMongoClient(): Promise<MongoClient> {
       minPoolSize: 0,
       maxIdleTimeMS: 60_000,
       serverSelectionTimeoutMS: 5_000,
-      // Limita também o tempo total das transações/repetições do adapter de auth.
-      timeoutMS: 10_000,
       waitQueueTimeoutMS: 5_000,
     });
     globalThis.__listaNatalinaMongo = client.connect().then(() => client).catch(async (error: unknown) => {

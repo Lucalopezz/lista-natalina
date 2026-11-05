@@ -47,7 +47,7 @@ Para Vercel: definir DATABASE_URL, nome do banco se necessário, BETTER_AUTH_SEC
 - 2 testes Playwright (desktop e celular): cadastro→dashboard→perfil→logout→negação de página privada→erro de login→login válido→logout. Sem overflow no perfil e sem credenciais em localStorage. Houve falha inicial de logout por ausência de JSON; corrigida e cenário aprovado.
 - Capturas de cadastro e perfil revisadas visualmente. Tailwind migrou os estilos de componentes para utilitários; globals.css contém somente tema/base.
 - Lint, TypeScript e build de produção aprovados. Auditoria de dependências de produção sem vulnerabilidades conhecidas.
-- Runner usa Docker/MongoDB 8.0.34 já disponível localmente, tmpfs e portas aleatórias. Sobrescreve explicitamente DATABASE_URL e DATABASE_NAME no Next de teste, mesmo havendo `.env` de produção. Não gera volume persistente; encerra container/servidor temporários ao final. Usa Chromium local quando disponível.
+- Runner usa Docker/MongoDB 7.0.45 já disponível localmente, tmpfs e portas aleatórias. Sobrescreve explicitamente DATABASE_URL e DATABASE_NAME no Next de teste, mesmo havendo `.env` de produção. Não gera volume persistente; encerra container/servidor temporários ao final. Usa Chromium local quando disponível.
 
 ## Comandos
 
@@ -70,4 +70,6 @@ Não há edição de perfil, busca de usuários, presentes ou grupos nesta fase.
 - `0c58b64`: testes de navegador e pipeline com MongoDB descartável.
 - Documentação de encerramento registrada em commit separado.
 
-Nome de produção confirmado pelo usuário: `lista-natalina`, configurado localmente em DATABASE_NAME sem alterar a URI. Auth recusa habilitar escritas se nem DATABASE_NAME nem a URI definirem o banco explicitamente; não usa `test` por omissão. O runner CI está fixado em Ubuntu 24.04 para evitar a incompatibilidade detectada entre o kernel do ubuntu-latest e a imagem MongoDB; a imagem de testes também está fixada em 8.0.34.
+Nome de produção confirmado pelo usuário: `lista-natalina`, configurado localmente em DATABASE_NAME sem alterar a URI. Auth recusa habilitar escritas se nem DATABASE_NAME nem a URI definirem o banco explicitamente; não usa `test` por omissão. O runner CI está fixado em Ubuntu 24.04 para evitar a incompatibilidade detectada entre o kernel do ubuntu-latest e a imagem MongoDB; a imagem de testes usa MongoDB 7.0.45, com o allocator anterior ao caminho afetado.
+
+A incompatibilidade do runner persistiu mesmo em Ubuntu 24.04, pois o container compartilha o kernel do host. Por isso o banco descartável foi fixado em MongoDB 7.0.45, já disponível localmente e compatível com os recursos utilizados; não houve downgrade de produção. Referência oficial do problema do MongoDB 8+: https://jira.mongodb.org/browse/SERVER-121912. O driver 7.8 depreca timeoutMS como opção sem efeito; ela foi removida, sem prometer limite total inexistente. Os limites de seleção/espera continuam em 5 segundos e as repetições transacionais são gerenciadas pela biblioteca/driver.
