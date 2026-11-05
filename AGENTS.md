@@ -45,6 +45,7 @@ Exemplo do nível de explicação esperado para uma futura operação de reserva
 
 - Stack: Next.js App Router, TypeScript estrito, MongoDB; frontend e backend no mesmo projeto, compatíveis com Vercel.
 - Estilize com Tailwind CSS. Mantenha em `globals.css` apenas importação, tokens do tema e estilos base; evite classes globais de layout/componentes. Use verde pinheiro, vermelho natalino e detalhes dourados, preservando contraste e legibilidade.
+- A interface também atende pessoas mais velhas: prefira instruções literais, navegação visível com seção atual, letras legíveis, controles confortáveis ao toque e confirmações que nomeiem a ação. Separe opções administrativas ocasionais das tarefas principais; não dependa só de ícones, cores ou hover.
 - Use Server Components por padrão; Client Components somente quando houver interatividade necessária.
 - Separe apresentação, validação, serviços/regras, persistência e autorização. Crie módulos em `src/modules` conforme a funcionalidade; evite abstrações e dependências sem benefício concreto.
 - Valide identidade no servidor em toda operação privada. Use usuário da sessão, nunca identidade enviada pelo cliente como fonte de autoridade.
@@ -78,7 +79,7 @@ Exemplo do nível de explicação esperado para uma futura operação de reserva
 - Faça commits pequenos por unidade funcional, usando Conventional Commits: `feat`, `fix`, `test`, `refactor`, `docs`, `chore` etc.
 - O título deve explicar a mudança concreta. Evite juntar alterações independentes ou criar commits que afirmem entregar funcionalidade ainda ausente.
 - Revise diff e arquivos preparados, preservando alterações não relacionadas. Nunca versionar `.env`, node_modules, builds, cobertura ou segredos.
-- O usuário autorizou commits, push e o avanço incremental até a Fase 4 nesta sessão. Faça push dos commits dessa entrega após validar; deploy/publicação da aplicação continua fora do escopo. Em novas tarefas, siga o escopo autorizado pelo usuário.
+- O usuário autorizou commits/push da Fase 4 e, depois, da revisão de interface e documentação técnica. Faça push dos commits dessa entrega após validar; deploy/publicação da aplicação continua fora do escopo. Em novas tarefas, siga o escopo autorizado pelo usuário.
 - Ao encerrar uma fase, atualize o contexto quando o estado, as decisões ou as pendências tiverem mudado. Não registre sucesso sem a verificação correspondente.
 
 ## Origem das preferências

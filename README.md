@@ -4,6 +4,8 @@ Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeSc
 
 ## Documentação
 
+Para estudar a aplicação, comece pelo [guia detalhado do projeto](docs/COMO-O-PROJETO-FUNCIONA.md): estrutura, rotas, exemplos de código, autenticação, regras e MongoDB.
+
 - [Instruções de trabalho e preferências](AGENTS.md)
 - [Contexto central](CONTEXT.md)
 - [Plano completo e modelagem](docs/PLANO.md)
@@ -12,6 +14,7 @@ Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeSc
 - [Fase 2: autenticação, contrato HTTP e testes](docs/FASE-2.md)
 - [Fase 3: lista pessoal e autorização](docs/FASE-3.md)
 - [Fase 4: grupos, participantes e administração](docs/FASE-4.md)
+- [Revisão da interface: simplicidade e leitura](docs/REVISAO-INTERFACE.md)
 
 ## Desenvolvimento
 
@@ -62,7 +65,7 @@ A fixture E2E limpa somente contadores de rate limit entre cenários no banco de
 
 Server Components são o padrão. Formulários usam o handler HTTP para manter cookies e rate limiting da biblioteca. Presentes usam Server Actions autenticadas e revalidação após sucesso. Regras de domínio não pertencem aos componentes React. Listas alheias/reservas futuras sempre exigirão contexto explícito do grupo.
 
-Estilos usam Tailwind CSS. Tokens da paleta natalina estão em `src/app/globals.css`; estilos de componentes e responsividade ficam nos utilitários do JSX. Sem biblioteca extra de formulários ou estado global.
+Interface usa textos diretos, fonte base de 18 px, menu com seção atual e controles principais de pelo menos 48 px. Imagem opcional fica recolhida no formulário, e cadastro/entrada permitem conferir a senha digitada. Estilos usam Tailwind CSS. Tokens da paleta natalina estão em `src/app/globals.css`; estilos de componentes e responsividade ficam nos utilitários do JSX. Sem biblioteca extra de formulários ou estado global.
 
 ## Lista de presentes
 

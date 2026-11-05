@@ -69,6 +69,12 @@ As novas variáveis privadas foram centralizadas no `.env`, com autorização do
 
 Servidor de desenvolvimento iniciado em http://localhost:3000 nesta sessão; verificar se continua rodando antes de prometer disponibilidade futura. Testes E2E usam outro servidor e banco. Deploy Vercel ainda não realizado. Na Vercel, configurar origem HTTPS exata e segredo próprio; previews exigem banco separado.
 
+## Revisão após a Fase 4
+
+O usuário solicitou interface mais simples para incluir pessoas mais velhas, com commit/push, e explicação detalhada do projeto. Implementada revisão de apresentação/interação: fonte base 18 px, textos diretos, menu visível com seção atual, ações principais maiores, mostrar senha, imagem opcional recolhida, tipos de grupo explicados e gestão por pessoa em detalhes. Backend/regras das Fases 1–4 preservados; Fase 5 não iniciada.
+
+Guia de estudo: [COMO-O-PROJETO-FUNCIONA.md](docs/COMO-O-PROJETO-FUNCIONA.md). Relatório: [REVISAO-INTERFACE.md](docs/REVISAO-INTERFACE.md). E2E passa a 12 cenários desktop/celular; o novo cobre teclado, foco, senha, imagem opcional, cancelamento e texto ampliado em viewport 320 px. Capturas revisadas. Isso não substitui teste de usabilidade com o público nem auditoria completa de acessibilidade.
+
 ## Próxima etapa
 
 Fase 5: compartilhamento de listas com autorização contextual e reservas privadas por grupo/edição. Não iniciar automaticamente após esta entrega: o usuário pediu avanço por etapas. A Fase 4 e os respectivos commits/push foram autorizados.
