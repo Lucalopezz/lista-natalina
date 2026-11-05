@@ -97,7 +97,10 @@ describe("regras dos grupos", () => {
     await expect(service.leave(stranger, id)).rejects.toMatchObject({ code: "not_found" });
   });
   it("oculta sorteios/versões e autoriza a pesquisa somente para admin", async () => {
+    reads.listMembers.mockResolvedValue({ items: [{ id: member, name: "Bruna", email: "private@example.test" }], nextCursor: null });
+    reads.searchCandidates.mockResolvedValue({ items: [{ id: stranger, name: "Beatriz", password: "private" }], nextCursor: null });
     const result = await service.get(admin, id);
+    expect(result.members.items).toEqual([{ id: member, name: "Bruna" }]);
     expect(result.group).not.toHaveProperty("assignments");
     expect(result.group).not.toHaveProperty("activeDrawId");
     expect(result.group).not.toHaveProperty("writeVersion");

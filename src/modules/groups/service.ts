@@ -1,5 +1,5 @@
 import { candidateQuerySchema, groupCreateSchema, groupIdSchema, groupInfoSchema, groupPageSchema } from "./validation";
-import type { Group, GroupRepository, GroupTransaction, GroupView } from "./types";
+import type { Group, GroupRepository, GroupTransaction, GroupView, Member, Page } from "./types";
 
 export class GroupError extends Error {
   constructor(public readonly code: "unauthorized" | "not_found" | "forbidden" | "invalid" | "conflict" | "active_draw" | "transfer_required" | "not_last", message: string) { super(message); }
@@ -30,6 +30,12 @@ function view(group: Group): GroupView {
     adminId: group.adminId, memberCount: group.memberCount, hasActiveDraw: Boolean(group.activeDrawId),
     createdAt: group.createdAt.toISOString(), updatedAt: group.updatedAt.toISOString(),
   };
+}
+
+function publicMembers(result: Page<Member>): Page<Member> {
+  // A projeção também existe no contrato do serviço: mudanças futuras no
+  // repositório não podem transformar um perfil mínimo em documento de auth.
+  return { items: result.items.map(({ id, name }) => ({ id, name })), nextCursor: result.nextCursor };
 }
 
 export function createGroupService(repository: GroupRepository) {
@@ -76,7 +82,7 @@ export function createGroupService(repository: GroupRepository) {
       const group = await readable(userId, groupId);
       const parsed = groupPageSchema.safeParse(query);
       if (!parsed.success) throw new GroupError("invalid", "Página de participantes inválida.");
-      return { group: view(group), members: await repository.listMembers(groupId, parsed.data.cursor) };
+      return { group: view(group), members: publicMembers(await repository.listMembers(groupId, parsed.data.cursor)) };
     },
     async search(actor: string | null, id: unknown, query: unknown) {
       const userId = identity(actor);
@@ -85,7 +91,7 @@ export function createGroupService(repository: GroupRepository) {
       const parsed = candidateQuerySchema.safeParse(query);
       if (!parsed.success) throw new GroupError("invalid", "Use até 100 caracteres para pesquisar pelo nome.");
       if (!parsed.data.q) return { items: [], nextCursor: null };
-      return repository.searchCandidates(groupId, parsed.data.q, parsed.data.cursor);
+      return publicMembers(await repository.searchCandidates(groupId, parsed.data.q, parsed.data.cursor));
     },
     async update(actor: string | null, id: unknown, input: unknown) {
       const userId = identity(actor), groupId = target(id);
