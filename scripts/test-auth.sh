@@ -33,7 +33,7 @@ wait_for_mongo 'if(!db.hello().isWritablePrimary) quit(1)'
 mongo_port="$(docker port "$container" 27017 | cut -d: -f2)"
 test_uri="mongodb://127.0.0.1:${mongo_port}/lista_natalina_test?directConnection=true"
 if [ "$mode" = integration ]; then
-  INTEGRATION_DATABASE_URL="$test_uri" pnpm exec vitest run src/modules/auth/auth.integration.test.ts
+  INTEGRATION_DATABASE_URL="$test_uri" pnpm exec vitest run .integration.test.ts
 elif [ "$mode" = e2e ]; then
   app_port="$(node --input-type=module -e 'import net from "node:net"; const s=net.createServer();s.listen(0,"127.0.0.1",()=>{console.log(s.address().port);s.close()})')"
   test_origin="http://localhost:${app_port}"
