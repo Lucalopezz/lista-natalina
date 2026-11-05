@@ -4,6 +4,9 @@ Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeSc
 
 ## Documentação
 
+- [Instruções de trabalho e preferências](AGENTS.md)
+- [Contexto central e estado atual](CONTEXT.md)
+
 - [Plano completo, arquitetura, modelagem e fases](docs/PLANO.md)
 - [Regras definitivas e testes adicionais](docs/REGRAS-DE-NEGOCIO.md)
 - [Resultado e validação da Fase 1](docs/FASE-1.md)
