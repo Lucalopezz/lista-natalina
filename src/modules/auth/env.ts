@@ -1,5 +1,6 @@
 import "server-only";
 import { z } from "zod";
+import { readServerEnv } from "../../lib/env/server";
 
 const authEnvSchema = z.object({
   BETTER_AUTH_SECRET: z.string().min(32),
@@ -22,4 +23,13 @@ export function readAuthEnv(source: Record<string, string | undefined>) {
     throw new Error(`Configuração da autenticação inválida: ${fields.join(", ")}`);
   }
   return parsed.data;
+}
+
+/** Não aceitar silenciosamente o banco padrão `test` ao habilitar contas reais. */
+export function readAuthDatabaseName(source: Record<string, string | undefined>) {
+  const env = readServerEnv(source);
+  if (env.DATABASE_NAME) return env.DATABASE_NAME;
+  const explicitName = /^mongodb(?:\+srv)?:\/\/[^/]+\/([^?]+)/.exec(env.DATABASE_URL)?.[1];
+  if (!explicitName) throw new Error("Configure DATABASE_NAME ou informe o banco explicitamente em DATABASE_URL.");
+  return decodeURIComponent(explicitName);
 }

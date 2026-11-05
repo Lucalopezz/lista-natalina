@@ -1,6 +1,6 @@
 import "server-only";
-import { getDatabase, getMongoClient } from "../../lib/db/mongodb";
-import { readAuthEnv } from "./env";
+import { getMongoClient } from "../../lib/db/mongodb";
+import { readAuthEnv, readAuthDatabaseName } from "./env";
 import { createAuth, type Auth } from "./config";
 import { ensureAuthIndexes } from "./indexes";
 
@@ -14,8 +14,9 @@ let initialization: Promise<Auth> | undefined;
 export function getAuth(): Promise<Auth> {
   initialization ??= (async () => {
     const env = readAuthEnv(process.env);
+    const databaseName = readAuthDatabaseName(process.env);
     const client = await getMongoClient();
-    const db = await getDatabase();
+    const db = client.db(databaseName);
     await ensureAuthIndexes(db);
     return createAuth(db, client, env);
   })().catch(() => {

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { readAuthEnv } from "./env";
+import { readAuthEnv, readAuthDatabaseName } from "./env";
 
 vi.mock("server-only", () => ({}));
 const valid = {
@@ -19,5 +19,15 @@ describe("configuração privada da autenticação", () => {
   });
   it("não revela valores sensíveis ao rejeitar configuração", () => {
     expect(() => readAuthEnv({ ...valid, BETTER_AUTH_URL: "https://user:secret@example.test" })).toThrow(/^Configuração da autenticação inválida: BETTER_AUTH_URL$/);
+  });
+});
+
+describe("destino explícito das escritas", () => {
+  it("recusa o banco test implícito da URI sem nome", () => {
+    expect(() => readAuthDatabaseName({ DATABASE_URL: "mongodb://localhost:27017/?retryWrites=true" })).toThrow("Configure DATABASE_NAME");
+  });
+  it("usa nome explícito da URI ou DATABASE_NAME", () => {
+    expect(readAuthDatabaseName({ DATABASE_URL: "mongodb://localhost:27017/wishlist?retryWrites=true" })).toBe("wishlist");
+    expect(readAuthDatabaseName({ DATABASE_URL: "mongodb://localhost:27017/", DATABASE_NAME: "lista_natalina" })).toBe("lista_natalina");
   });
 });
