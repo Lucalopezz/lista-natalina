@@ -57,9 +57,9 @@ A implementação deve seguir os detalhes e a matriz de testes do complemento de
 
 ## Verificações e ambiente
 
-Fase 2: 36 testes isolados, 14 de integração HTTP com MongoDB descartável e dois E2E Playwright (desktop/celular) aprovados; lint, TypeScript e build também. Capturas de cadastro/perfil revisadas. `pnpm audit --prod` não encontrou vulnerabilidades conhecidas. Auditorias são retratos do momento, revalidar quando necessário.
+Fase 2: 38 testes isolados, 14 de integração HTTP com MongoDB descartável e dois E2E Playwright (desktop/celular) aprovados; lint, TypeScript e build também. Capturas de cadastro/perfil revisadas. `pnpm audit --prod` não encontrou vulnerabilidades conhecidas. Auditorias são retratos do momento, revalidar quando necessário.
 
-O usuário corrigiu a conexão e definiu o banco do `.env` como **produção**. Ping e topologia transacional confirmados sem alteração de documentos. Nunca fazer cadastro automatizado, seed, drop ou limpeza nele. Testes são executados por `scripts/test-auth.sh`, com MongoDB temporário em tmpfs e envs explicitamente sobrescritas. O helper de integração recusa URI diferente do formato local descartável.
+O usuário corrigiu a conexão e definiu o banco como **produção**, com nome explícito `lista-natalina` (DATABASE_NAME em .env.local). Auth bloqueia escritas se o nome estiver implícito. Ping e topologia transacional confirmados sem alteração de documentos. Nunca fazer cadastro automatizado, seed, drop ou limpeza nele. Testes são executados por `scripts/test-auth.sh`, com MongoDB temporário em tmpfs e envs explicitamente sobrescritas. O helper de integração recusa URI diferente do formato local descartável.
 
 `.env.local` foi preparado com segredo privado local e origem http://localhost:3000, sem exibir valores; `.env` permanece preservado. A aplicação local conectada a esse banco cria contas reais quando o usuário se cadastra manualmente. Primeira inicialização funcional de auth prepara índices idempotentes. A verificação de conexão feita nesta etapa não criou índices.
 

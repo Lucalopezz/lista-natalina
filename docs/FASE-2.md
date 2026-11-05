@@ -41,13 +41,13 @@ Para Vercel: definir DATABASE_URL, nome do banco se necessário, BETTER_AUTH_SEC
 
 ## TDD e evidências
 
-- 36 testes isolados: ambiente, conexão, validação, identidade/projeção, redirecionamento e erros sanitizados. Testes foram escritos antes dos respectivos módulos; sanitização também teve falha de comportamento observada antes da correção.
+- 38 testes isolados: ambiente, conexão, validação, identidade/projeção, redirecionamento e erros sanitizados. Testes foram escritos antes dos respectivos módulos; sanitização também teve falha de comportamento observada antes da correção.
 - 14 testes HTTP com MongoDB real descartável: cadastro, hash, sessão, duplicidade, concorrência, credenciais inválidas, anônimo, logout/revogação, expiração, cookie adulterado, origem, limite entre instâncias, cookie Secure e endpoints fora de escopo.
 - O teste concorrente falhou inicialmente com dois cadastros aceitos, comprovando a necessidade do índice único. Após a correção, só um usuário e uma credencial persistem.
 - 2 testes Playwright (desktop e celular): cadastro→dashboard→perfil→logout→negação de página privada→erro de login→login válido→logout. Sem overflow no perfil e sem credenciais em localStorage. Houve falha inicial de logout por ausência de JSON; corrigida e cenário aprovado.
 - Capturas de cadastro e perfil revisadas visualmente. Tailwind migrou os estilos de componentes para utilitários; globals.css contém somente tema/base.
 - Lint, TypeScript e build de produção aprovados. Auditoria de dependências de produção sem vulnerabilidades conhecidas.
-- Runner usa Docker/MongoDB 8 já disponível localmente, tmpfs e portas aleatórias. Sobrescreve explicitamente DATABASE_URL e DATABASE_NAME no Next de teste, mesmo havendo `.env` de produção. Não gera volume persistente; encerra container/servidor temporários ao final. Usa Chromium local quando disponível.
+- Runner usa Docker/MongoDB 8.0.34 já disponível localmente, tmpfs e portas aleatórias. Sobrescreve explicitamente DATABASE_URL e DATABASE_NAME no Next de teste, mesmo havendo `.env` de produção. Não gera volume persistente; encerra container/servidor temporários ao final. Usa Chromium local quando disponível.
 
 ## Comandos
 
@@ -69,3 +69,5 @@ Não há edição de perfil, busca de usuários, presentes ou grupos nesta fase.
 - `1765c34`: telas de conta, Tailwind e identidade natalina.
 - `0c58b64`: testes de navegador e pipeline com MongoDB descartável.
 - Documentação de encerramento registrada em commit separado.
+
+Nome de produção confirmado pelo usuário: `lista-natalina`, configurado localmente em DATABASE_NAME sem alterar a URI. Auth recusa habilitar escritas se nem DATABASE_NAME nem a URI definirem o banco explicitamente; não usa `test` por omissão. O runner CI está fixado em Ubuntu 24.04 para evitar a incompatibilidade detectada entre o kernel do ubuntu-latest e a imagem MongoDB; a imagem de testes também está fixada em 8.0.34.

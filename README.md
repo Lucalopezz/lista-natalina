@@ -48,7 +48,7 @@ pnpm test:integration     # MongoDB novo, isolado, em memória (Docker)
 pnpm test:e2e             # Build e navegador com outro MongoDB descartável
 ```
 
-Os runners de integração/E2E não usam o banco do `.env`: criam containers com tmpfs e portas aleatórias, sobrescrevem as variáveis no processo de teste e limpam somente recursos próprios. Reutilizam a imagem `mongo:8.0` quando já disponível. E2E usa Chromium local quando instalado; caso contrário, `pnpm exec playwright install chromium`. Capturas e traces ficam em `test-results`, ignorado pelo Git.
+Os runners de integração/E2E não usam o banco do `.env`: criam containers com tmpfs e portas aleatórias, sobrescrevem as variáveis no processo de teste e limpam somente recursos próprios. Reutilizam a imagem `mongo:8.0.34` quando já disponível. E2E usa Chromium local quando instalado; caso contrário, `pnpm exec playwright install chromium`. Capturas e traces ficam em `test-results`, ignorado pelo Git.
 
 `db:check` consulta ping/topologia, fecha a conexão e não imprime URI, hosts, credenciais ou documentos; não cria coleções/índices/dados. Verificação de topologia não substitui testes de transações reais.
 
