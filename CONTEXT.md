@@ -17,8 +17,8 @@ O perfil ai-memory contribui com preferências de comunicação, conforme a orig
 
 ## Estado implementado
 
-- Fases 1 e 2 implementadas. Fases 3–7 ainda não iniciadas. Consulte [FASE-2.md](docs/FASE-2.md) para autenticação, ambiente e testes.
-- Next.js 16.4.5, React 19.3.1 e TypeScript estrito; página pública, cadastro, entrada, dashboard inicial e perfil próprio; Tailwind CSS com paleta natalina.
+- Fases 1, 2 e 3 implementadas. Fases 4–7 ainda não iniciadas. Consulte [FASE-2.md](docs/FASE-2.md) para autenticação, ambiente e testes.
+- Next.js 16.4.5, React 19.3.1 e TypeScript estrito; página pública, cadastro, entrada, dashboard, perfil e CRUD da lista pessoal; Tailwind CSS com paleta natalina.
 - pnpm 12.11.2 em packageManager, pnpm-lock.yaml versionado e Node.js 24 como alvo. Instalação npm anterior removida; manter package.json.
 - Zod para validar ambiente privado, usando o nome existente `DATABASE_URL`; `DATABASE_NAME` opcional. Sem nome explícito, o driver usa o da URI ou seu padrão: confirmar banco antes de escrever.
 - Driver oficial MongoDB em módulo server-only; conexão lazy, promessa global por instância, pool máximo 10, conexão inicial descartada após falha para permitir nova tentativa.
@@ -36,9 +36,11 @@ O perfil ai-memory contribui com preferências de comunicação, conforme a orig
 | `src/lib/**/*.test.ts` | Testes isolados de ambiente e conexão |
 | `scripts/check-database.ts` | Ping e consulta de topologia explícitos, sem modificar dados |
 | `.github/workflows/validacao.yml` | Instalação reproduzível e verificação no CI |
-| `src/modules` (futuro) | auth, users, gifts, groups, reservations, secret-santa, criados conforme cada fase |
+| `src/modules/auth` | Autenticação e sessão |
+| `src/modules/gifts` | Validação, casos de uso, persistência, Server Actions e UI da lista pessoal |
+| Demais módulos futuros | users, groups, reservations e secret-santa, criados conforme cada fase |
 
-Better Auth 1.7.17 com adapter MongoDB implementado. Senha de 6–128 caracteres, sessão de 7 dias, sem confirmação de email nem recuperação de senha (decisões explícitas do usuário). Há cadastro/login/logout/perfil e índices de auth. Presentes, grupos, reservas e sorteios ainda não implementados.
+Better Auth 1.7.17 com adapter MongoDB implementado. Senha de 6–128 caracteres, sessão de 7 dias, sem confirmação de email nem recuperação de senha (decisões explícitas do usuário). Há cadastro/login/logout/perfil e índices de auth. Presentes implementados na [Fase 3](docs/FASE-3.md), incluindo paginação de 24 itens sem limite total, edição/exclusão restritas ao dono e imagem opcional com ilustração local padrão. Grupos, reservas e sorteios ainda não implementados.
 
 ## Invariantes de negócio
 
@@ -58,7 +60,7 @@ A implementação deve seguir os detalhes e a matriz de testes do complemento de
 
 ## Verificações e ambiente
 
-Fase 2: 38 testes isolados, 14 de integração HTTP com MongoDB descartável e dois E2E Playwright (desktop/celular) aprovados; lint, TypeScript e build também. Capturas de cadastro/perfil revisadas. `pnpm audit --prod` não encontrou vulnerabilidades conhecidas. Auditorias são retratos do momento, revalidar quando necessário.
+Fase 3: 77 testes isolados, 23 de integração com MongoDB descartável e oito E2E Playwright (desktop/celular) aprovados; lint, TypeScript e build também. Capturas de cards, imagem padrão e confirmação de exclusão revisadas. `pnpm audit --prod` não encontrou vulnerabilidades conhecidas. Auditorias são retratos do momento, revalidar quando necessário.
 
 O usuário corrigiu a conexão e definiu o banco como **produção**, com nome explícito `lista-natalina` (DATABASE_NAME no .env). Auth bloqueia escritas se o nome estiver implícito. Ping e topologia transacional confirmados sem alteração de documentos. Nunca fazer cadastro automatizado, seed, drop ou limpeza nele. Testes são executados por `scripts/test-auth.sh`, com MongoDB temporário em tmpfs e envs explicitamente sobrescritas. O helper de integração recusa URI diferente do formato local descartável.
 
@@ -68,8 +70,8 @@ Servidor de desenvolvimento iniciado em http://localhost:3000 nesta sessão; ver
 
 ## Próxima etapa
 
-Fase 3: CRUD da lista pessoal, cards e URLs validadas/autorizadas. Ainda não iniciar sem a próxima etapa solicitada pelo usuário. Ele autorizou o push dos commits desta entrega e a Fase 2, já executada.
+Fase 4: criação/gerenciamento de grupos, pesquisa e inclusão direta de membros, transferência de administração e dashboard. Não iniciar automaticamente após esta entrega: o usuário pediu avanço por etapas. A Fase 3 e os respectivos commits/push foram autorizados.
 
 Pendências das fases seguintes: mínimo de participantes, encerramento do grupo pelo último membro, edição de perfil e exclusão de conta/retenção. Senha/sessão e ausência de email/recuperação já estão definidos, não perguntar novamente.
 
-Commits de referência da Fase 1: `f832e7e`, `8c76bc9`, `35edd6a`, `c4772ae` e `1d68a8b`; backend de auth: `a9b2025`. Consulte `git log`/`git status` para histórico e estado atuais.
+Commits de referência da Fase 1: `f832e7e`, `8c76bc9`, `35edd6a`, `c4772ae` e `1d68a8b`; backend de auth: `a9b2025`; base da lista pessoal: `87ff062`. Consulte `git log`/`git status` para histórico e estado atuais.

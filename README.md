@@ -1,6 +1,6 @@
 # Lista Natalina
 
-Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeScript, MongoDB e Tailwind CSS. Já estão implementados cadastro, entrada, logout, sessão e perfil próprio. Presentes, grupos, reservas e sorteios serão entregues nas próximas fases.
+Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeScript, MongoDB e Tailwind CSS. Já estão implementados cadastro, entrada, logout, sessão, perfil próprio e lista pessoal de presentes. Grupos, reservas e sorteios serão entregues nas próximas fases.
 
 ## Documentação
 
@@ -10,6 +10,7 @@ Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeSc
 - [Regras definitivas de negócio](docs/REGRAS-DE-NEGOCIO.md)
 - [Fase 1: estrutura](docs/FASE-1.md)
 - [Fase 2: autenticação, contrato HTTP e testes](docs/FASE-2.md)
+- [Fase 3: lista pessoal e autorização](docs/FASE-3.md)
 
 ## Desenvolvimento
 
@@ -20,7 +21,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Abra http://localhost:3000. Rotas: `/`, `/cadastro`, `/entrar`, `/dashboard` e `/perfil`. Dashboard/perfil exigem sessão validada no servidor. Senha de 6–128 caracteres; sessão de 7 dias; sem confirmação de email nem recuperação de senha.
+Abra http://localhost:3000. Rotas: `/`, `/cadastro`, `/entrar`, `/dashboard`, `/perfil` e `/presentes`. Dashboard, perfil e presentes exigem sessão validada no servidor. Senha de 6–128 caracteres; sessão de 7 dias; sem confirmação de email nem recuperação de senha.
 
 Preserve arquivos locais existentes. Em novo checkout, use `.env.example` como referência e configure arquivos privados sem versioná-los. `.env` e `.env.local` estão ignorados pelo Git. O banco existente é de **produção**, conforme decisão do usuário: não usar para dados automatizados de teste, seed ou limpeza. Cadastros manuais no servidor local conectado a ele criam contas reais.
 
@@ -54,11 +55,15 @@ Os runners de integração/E2E não usam o banco do `.env`: criam containers com
 
 ## Organização e interface
 
-`src/app`: páginas/layouts/Route Handlers. `src/modules/auth`: validação, configuração Better Auth, índices, adaptador HTTP, sessão e formulários. `src/lib/db`: pool MongoDB reutilizável e server-only. Testes junto dos módulos. Novos módulos serão adicionados conforme cada fase, sem implementações vazias.
+`src/app`: páginas/layouts/Route Handlers. `src/modules/auth`: validação, configuração Better Auth, índices, adaptador HTTP, sessão e formulários. `src/modules/gifts`: validação, serviços, repositório, Server Actions e UI da lista pessoal. `src/lib/db`: pool MongoDB reutilizável e server-only. Testes junto dos módulos. Novos módulos serão adicionados conforme cada fase, sem implementações vazias.
 
-Server Components são o padrão. Formulários usam o handler HTTP para manter cookies e rate limiting da biblioteca. Regras de domínio não pertencem aos componentes React. Listas alheias/reservas futuras sempre exigirão contexto explícito do grupo.
+Server Components são o padrão. Formulários usam o handler HTTP para manter cookies e rate limiting da biblioteca. Presentes usam Server Actions autenticadas e revalidação após sucesso. Regras de domínio não pertencem aos componentes React. Listas alheias/reservas futuras sempre exigirão contexto explícito do grupo.
 
 Estilos usam Tailwind CSS. Tokens da paleta natalina estão em `src/app/globals.css`; estilos de componentes e responsividade ficam nos utilitários do JSX. Sem biblioteca extra de formulários ou estado global.
+
+## Lista de presentes
+
+Acesse `/presentes` após entrar. Nome, descrição e link HTTP/HTTPS do produto são obrigatórios. URL da imagem é opcional; imagem ausente ou com falha usa a ilustração local `public/images/gift-default.svg`. A lista tem paginação de 24 itens, sem limite total de presentes. Somente o proprietário consulta, edita e exclui seus itens nesta fase; exclusão exige confirmação. Compartilhamento será implementado por contexto de grupo.
 
 ## Ícone da aplicação
 

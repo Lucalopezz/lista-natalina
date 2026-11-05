@@ -47,7 +47,7 @@ Identificadores de domínio serializados como strings; BSON ObjectId no domínio
 | `account` | id, userId, providerId, accountId, password hash | índices exigidos pelo adapter; credenciais nunca em DTO público |
 | `session` | id, userId, token, expiresAt, createdAt, updatedAt | token único, userId; TTL expiresAt; validar expiração também na aplicação |
 | `verification` | campos do adapter para verificação/recuperação | índices e TTL conforme versão; nenhuma exposição pública |
-| `gifts` | _id, ownerId, name, description, productUrl, imageUrl, createdAt, updatedAt | ownerId + createdAt + _id para paginação sem limite total de presentes |
+| `gifts` | _id, ownerId, name, description, productUrl, imageUrl, createdAt, updatedAt | ownerId + _id decrescente para paginação sem limite total de presentes (decisão da Fase 3) |
 | `groups` | _id, name, description?, type, adminId, membershipVersion, writeVersion, activeDrawId?, createdAt, updatedAt | adminId; versão para serializar alterações de membros/sorteios |
 | `memberships` | _id, groupId, userId, joinedAt | único (groupId,userId); (userId,groupId) para dashboard e compartilhamento |
 | `reservations` | _id, giftId, groupId, reservedBy, drawId? (edição), status, createdAt, updatedAt, cancelledAt? | único parcial (groupId,giftId) onde status=active; (groupId,drawId,status) para invalidação; reservedBy |
@@ -101,7 +101,7 @@ Política confirmada pelo usuário: senha de 6–128 caracteres, sessão de 7 di
 
 ### Fase 3 — Lista pessoal
 
-TDD de criação, edição, exclusão, URLs inseguras, entrada inválida e alteração por terceiro. CRUD filtrado pelo usuário da sessão; paginação sem limite total. Cards com imagem, texto alternativo, descrição e produto em nova aba segura. Estados vazios/loading/error, confirmação de exclusão e feedback. Não exibir disponibilidade ao proprietário.
+Fase implementada: ver [FASE-3.md](FASE-3.md). Imagem é opcional, com ilustração local padrão (decisão do usuário). TDD de criação, edição, exclusão, URLs inseguras, entrada inválida e alteração por terceiro. CRUD filtrado pelo usuário da sessão; paginação sem limite total. Cards com imagem, texto alternativo, descrição e produto em nova aba segura. Estados vazios/loading/error, confirmação de exclusão e feedback. Não exibir disponibilidade ao proprietário.
 
 ### Fase 4 — Grupos e dashboard
 
@@ -123,13 +123,13 @@ Revisar IDOR, DTOs, sessões, XSS, CSRF, URLs, logs e rate limiting distribuído
 
 Cada comportamento: escrever teste → executar e registrar falha esperada → implementar mínimo → executar verde → refatorar → executar novamente. Testes de integração usam banco dedicado com replica set, URI separada e proteção contra banco de produção. Não limpar banco da DATABASE_URL existente. E2E com dados descartáveis. Não criar testes que apenas repitam o JSX ou constantes.
 
-Commits Conventional Commits em unidades verificadas, sem push automático: planejamento/configuração, testes de infraestrutura e implementação da base. Antes de cada commit executar verificações pertinentes; no fim da fase rodar conjunto completo. Nunca usar `git add .` sem inspeção de segredos. O lockfile será versionado; CI usará pnpm install --frozen-lockfile.
+Commits Conventional Commits em unidades verificadas, com push quando autorizado na sessão: planejamento/configuração, testes de infraestrutura e implementação da base. Antes de cada commit executar verificações pertinentes; no fim da fase rodar conjunto completo. Nunca usar `git add .` sem inspeção de segredos. O lockfile será versionado; CI usará pnpm install --frozen-lockfile.
 
 Cada entrega informa resultado, arquivos principais com links, testes e limitações, hashes dos commits e próxima fase. Adotamos esse formato de revisão também nas próximas entregas.
 
 ## Estado da Fase 1
 
-Base implementada e validada com pnpm; ver [FASE-1.md](FASE-1.md). A pendência inicial de autenticação do MongoDB foi resolvida pelo usuário na Fase 2; ping e topologia transacional confirmados. Nenhum dado ou credencial foi alterado. Fase 2 implementada; consulte [FASE-2.md](FASE-2.md). Fases 3–7 ainda não iniciadas.
+Base implementada e validada com pnpm; ver [FASE-1.md](FASE-1.md). A pendência inicial de autenticação do MongoDB foi resolvida pelo usuário na Fase 2; ping e topologia transacional confirmados. Nenhum dado ou credencial foi alterado. Fase 2 implementada; consulte [FASE-2.md](FASE-2.md). Fase 3 implementada: ver [FASE-3.md](FASE-3.md). Fases 4–7 ainda não iniciadas.
 
 ## Referências oficiais consultadas
 

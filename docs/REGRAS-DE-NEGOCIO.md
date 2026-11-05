@@ -66,3 +66,7 @@ Testes HTTP/DTO verificam ausência de campos confidenciais; integração MongoD
 - Senha: 6 a 128 caracteres. Sessão: 7 dias. Sem confirmação de email nem recuperação de senha, por decisão explícita do usuário.
 - Banco do `.env` é produção. Testes de escrita, cadastros automatizados e exclusão/limpeza só podem ocorrer no MongoDB descartável criado pelo runner.
 - Interface: Tailwind CSS e paleta natalina (verde pinheiro, vermelho, dourado e creme).
+
+## Definição complementar da Fase 3
+
+A URL da imagem do presente é opcional, conforme instrução explícita do usuário. Quando ausente/em branco, usar uma ilustração local padrão; quando informada, validar HTTP/HTTPS e rejeitar esquemas inseguros e credenciais embutidas. Falha de carregamento também mostra a ilustração. Nome, descrição e link do produto continuam obrigatórios. O banco guarda imageUrl vazio quando não fornecido, sem vincular o registro ao domínio da aplicação.
