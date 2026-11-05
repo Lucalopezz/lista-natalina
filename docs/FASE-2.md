@@ -57,7 +57,7 @@ pnpm test:integration
 pnpm test:e2e
 ```
 
-Integração/E2E exigem Docker. Se não houver Chromium local, instalar o navegador de testes com `pnpm exec playwright install chromium`. O CI instala Chromium e roda os mesmos fluxos isolados. O primeiro push da Fase 1 encontrou o bloqueio de idade de publicação do Vite no pnpm; a exceção exata da versão resolvida foi registrada em pnpm-workspace.yaml, sem desabilitar a política global.
+Integração/E2E exigem Docker. Se não houver Chromium local, instalar o navegador de testes com `pnpm exec playwright install chromium`. O CI instala Chromium e roda os mesmos fluxos isolados. O runner usa tmpfs com capacidade de 1 GiB para respeitar a margem de espaço de índices e não depender de parâmetros específicos de versões do MongoDB. Falhas de inicialização mostram somente logs do container de fixtures. O primeiro push da Fase 1 encontrou o bloqueio de idade de publicação do Vite no pnpm; a exceção exata da versão resolvida foi registrada em pnpm-workspace.yaml, sem desabilitar a política global.
 
 ## Limites e próximo passo
 
