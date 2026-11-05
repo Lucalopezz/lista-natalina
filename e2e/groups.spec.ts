@@ -12,7 +12,7 @@ async function register(page: Page, name: string) {
   return email;
 }
 async function add(page: Page, name: string) {
-  await page.getByLabel("Pesquisar usuários pelo nome").fill(name);
+  await page.getByLabel("Pesquisar pessoas pelo nome").fill(name);
   await page.getByRole("button", { name: "Pesquisar", exact: true }).click();
   const result = page.getByRole("list", { name: "Resultados da pesquisa" }).getByRole("listitem").filter({ hasText: name });
   await result.getByRole("button", { name: "Adicionar", exact: true }).click();
@@ -20,8 +20,12 @@ async function add(page: Page, name: string) {
 }
 async function confirm(page: Page, trigger: string, name?: string) {
   const source = name ? page.getByRole("list", { name: "Participantes" }).getByRole("listitem").filter({ hasText: name }) : page;
+  if (name) {
+    const options = source.locator("details");
+    if (!await options.evaluate((element) => (element as HTMLDetailsElement).open)) await options.locator("summary").click();
+  }
   await source.getByRole("button", { name: trigger, exact: true }).click();
-  await page.getByRole("dialog").getByRole("button", { name: "Confirmar", exact: true }).click();
+  await page.getByRole("dialog").getByRole("button", { name: /^Sim, / }).click();
 }
 
 test("grupos: inclusão direta, papéis, remoção, saída, transferência e encerramento", async ({ page, browser, baseURL }) => {
@@ -38,22 +42,22 @@ test("grupos: inclusão direta, papéis, remoção, saída, transferência e enc
     await expect(page.getByRole("link", { name: "Criar grupo", exact: true })).toBeVisible();
     await page.getByRole("link", { name: "Criar grupo", exact: true }).click();
     await page.getByLabel("Nome do grupo").fill(`Família ${suffix}`);
-    await page.getByLabel("Descrição", { exact: true }).fill("Natal em família.");
-    await page.getByLabel("Tipo do grupo").selectOption("conventional");
+    await page.getByLabel("Descrição (opcional)", { exact: true }).fill("Natal em família.");
+    await page.getByRole("radio", { name: "Lista em grupo", exact: true }).check();
     await page.getByRole("button", { name: "Criar grupo", exact: true }).click();
     await expect(page.getByRole("heading", { name: `Família ${suffix}`, exact: true })).toBeVisible();
     const groupUrl = page.url().split("?")[0];
     await member.goto(groupUrl);
     await expect(member.getByRole("heading", { name: "Grupo não encontrado." })).toBeVisible();
     await add(page, memberName); await add(page, thirdName);
-    await expect(page.getByText("3 participantes", { exact: true })).toBeVisible();
+    await expect(page.getByText("Lista em grupo · 3 participantes", { exact: true })).toBeVisible();
     expect(await page.content()).not.toContain(memberEmail);
     await member.goto("/dashboard");
     await expect(member.getByRole("heading", { name: `Família ${suffix}`, exact: true })).toBeVisible();
     await member.goto(`${groupUrl}/editar`);
     await expect(member.getByRole("heading", { name: "Grupo não encontrado." })).toBeVisible();
     await member.goto(groupUrl);
-    await expect(member.getByLabel("Pesquisar usuários pelo nome")).toHaveCount(0);
+    await expect(member.getByLabel("Pesquisar pessoas pelo nome")).toHaveCount(0);
     await confirm(member, "Sair do grupo");
     await expect(member).toHaveURL(/\/grupos\?status=saida$/);
     await page.goto(groupUrl); await add(page, memberName);
@@ -67,7 +71,7 @@ test("grupos: inclusão direta, papéis, remoção, saída, transferência e enc
     await page.screenshot({ path: `test-results/${test.info().project.name}-grupo.png`, fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     await confirm(page, "Transferir administração", memberName);
-    await expect(page.getByLabel("Pesquisar usuários pelo nome")).toHaveCount(0);
+    await expect(page.getByLabel("Pesquisar pessoas pelo nome")).toHaveCount(0);
     await confirm(page, "Sair do grupo");
     await member.goto(groupUrl);
     await expect(member.getByText("Você administra este grupo.", { exact: true })).toBeVisible();
@@ -75,8 +79,8 @@ test("grupos: inclusão direta, papéis, remoção, saída, transferência e enc
     await expect(member).toHaveURL(/\/grupos\?status=encerrado$/);
     await page.goto("/grupos/novo");
     await page.getByLabel("Nome do grupo").fill(`Amigo secreto ${suffix}`);
-    await page.getByLabel("Tipo do grupo").selectOption("secret_santa");
+    await page.getByRole("radio", { name: "Amigo secreto", exact: true }).check();
     await page.getByRole("button", { name: "Criar grupo", exact: true }).click();
-    await expect(page.getByText("Amigo secreto", { exact: true })).toBeVisible();
+    await expect(page.getByText("Amigo secreto · 1 participante", { exact: true })).toBeVisible();
   } finally { await otherContext.close(); await thirdContext.close(); }
 });

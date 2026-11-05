@@ -13,7 +13,8 @@ async function fillGift(page: Page) {
   await page.getByLabel("Nome do presente").fill("Livro de Natal");
   await page.getByLabel("Descrição", { exact: true }).fill("Receitas para celebrar em família.");
   await page.getByLabel("Link do produto").fill("https://example.test/livro");
-  await page.getByLabel("URL da imagem").fill("https://images.example.test/gift-test.png");
+  await page.getByText("Adicionar uma imagem (opcional)", { exact: true }).click();
+  await page.getByLabel("Link da imagem (opcional)", { exact: true }).fill("https://images.example.test/gift-test.png");
 }
 
 test("lista pessoal: erro de URL, cadastro, edição e exclusão confirmada", async ({ page }) => {
@@ -25,7 +26,7 @@ test("lista pessoal: erro de URL, cadastro, edição e exclusão confirmada", as
   await expect(page).toHaveURL(/\/entrar$/);
   await register(page);
   await page.getByRole("link", { name: "Minha lista", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Sua lista começa com um desejo." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Você ainda não adicionou presentes." })).toBeVisible();
   await page.getByRole("link", { name: "Adicionar presente", exact: true }).click();
   await fillGift(page);
   await page.getByLabel("Link do produto").fill("javascript:alert(1)");
@@ -36,7 +37,7 @@ test("lista pessoal: erro de URL, cadastro, edição e exclusão confirmada", as
   await expect(page.getByRole("status")).toHaveText("Presente adicionado à sua lista.");
   await expect(page.getByRole("heading", { name: "Livro de Natal", exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: "Livro de Natal" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Ver produto" })).toHaveAttribute("target", "_blank");
+  await expect(page.getByRole("link", { name: "Ver na loja" })).toHaveAttribute("target", "_blank");
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `test-results/${test.info().project.name}-presentes.png`, fullPage: true });
   await page.getByRole("link", { name: "Editar" }).click();
@@ -52,7 +53,7 @@ test("lista pessoal: erro de URL, cadastro, edição e exclusão confirmada", as
   await page.getByRole("button", { name: "Excluir", exact: true }).click();
   await page.getByRole("button", { name: "Excluir presente", exact: true }).click();
   await expect(page.getByRole("status")).toHaveText("Presente excluído.");
-  await expect(page.getByRole("heading", { name: "Sua lista começa com um desejo." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Você ainda não adicionou presentes." })).toBeVisible();
 });
 
 test("outro usuário não vê a lista nem acessa a edição conhecendo o ID", async ({ page, browser, baseURL }) => {
@@ -87,7 +88,7 @@ test("imagem opcional usa ilustração padrão", async ({ page }) => {
   await register(page);
   await page.goto("/presentes/novo");
   await fillGift(page);
-  await page.getByLabel("URL da imagem").fill("");
+  await page.getByLabel("Link da imagem (opcional)", { exact: true }).fill("");
   await page.getByRole("button", { name: "Salvar presente" }).click();
   await expect(page.getByRole("status")).toHaveText("Presente adicionado à sua lista.");
   const image = page.getByRole("img", { name: "Imagem ilustrativa de Livro de Natal" });

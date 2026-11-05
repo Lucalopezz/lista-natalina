@@ -13,5 +13,5 @@ export default async function EditGroupPage({ params }: { params: Promise<{ id: 
   try { group = (await (await getGroupService()).get(user.id, id)).group; }
   catch (error) { if (error instanceof GroupError && error.code === "not_found") notFound(); throw error; }
   if (group.adminId !== user.id) notFound();
-  return <section className="max-w-2xl py-10"><Link href={`/grupos/${group.id}`} className="inline-block py-3 text-sm text-muted underline underline-offset-4">← Voltar ao grupo</Link><h1 className="mt-3 font-display text-4xl tracking-tight md:text-5xl">Detalhes do encontro.</h1><GroupForm key={group.id} group={group} /></section>;
+  return <section className="max-w-2xl py-8"><Link href={`/grupos/${group.id}`} className="inline-block py-3 text-base text-muted underline underline-offset-4">← Voltar ao grupo</Link><h1 className="mt-3 text-3xl font-bold">Editar grupo</h1><GroupForm key={group.id} group={group} /></section>;
 }

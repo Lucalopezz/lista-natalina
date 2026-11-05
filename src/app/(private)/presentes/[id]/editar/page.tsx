@@ -19,10 +19,10 @@ export default async function EditGiftPage({ params }: { params: Promise<{ id: s
     throw error;
   }
   return (
-    <section className="max-w-2xl py-10 md:py-12">
-      <Link href="/presentes" className="inline-block py-3 text-sm text-muted underline underline-offset-4">← Minha lista</Link>
-      <h1 className="mt-3 font-display text-4xl tracking-tight md:text-5xl">Ajuste os detalhes.</h1>
-      <p className="mt-4 text-sm leading-relaxed text-muted">Mantenha seu desejo do jeitinho que você imaginou.</p>
+    <section className="max-w-2xl py-8">
+      <Link href="/presentes" className="inline-block py-3 text-base text-muted underline underline-offset-4">← Minha lista</Link>
+      <h1 className="mt-3 text-3xl font-bold">Editar presente</h1>
+      <p className="mt-4 text-base leading-relaxed text-muted">Altere os campos e depois use “Salvar alterações”.</p>
       <GiftForm key={gift.id} gift={gift} />
     </section>
   );

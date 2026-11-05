@@ -28,28 +28,63 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
   if (isAdmin && !group.hasActiveDraw && search.success && search.data.q) candidates = await service.search(user.id, group.id, search.data);
   const status = typeof query.status === "string" && Object.hasOwn(feedback, query.status) ? feedback[query.status] : null;
   return (
-    <section className="py-10 md:py-12">
-      <Link href="/grupos" className="inline-block py-3 text-sm text-muted underline underline-offset-4">← Meus grupos</Link>
-      <div className="mt-4 flex flex-wrap items-start justify-between gap-4"><div><p className="text-xs font-bold text-accent">{group.type === "conventional" ? "Convencional" : "Amigo secreto"}</p><h1 className="mt-3 font-display text-4xl tracking-tight wrap-anywhere md:text-5xl">{group.name}</h1><p className="mt-4 text-sm text-muted">{group.memberCount} {group.memberCount === 1 ? "participante" : "participantes"}</p></div>{isAdmin && <Link href={`/grupos/${group.id}/editar`} className="py-3 text-sm text-accent underline underline-offset-4">Editar grupo</Link>}</div>
-      {group.description && <p className="mt-5 max-w-2xl text-sm leading-relaxed whitespace-pre-line text-muted wrap-anywhere">{group.description}</p>}
-      <p className="mt-4 text-sm font-bold">{isAdmin ? "Você administra este grupo." : "Você participa deste grupo."}</p>
-      {status && <p role="status" className="mt-6 rounded-xl bg-soft p-4 text-sm">{status}</p>}
-      {group.hasActiveDraw && <p className="mt-6 rounded-xl border border-gold/30 bg-gold/10 p-4 text-sm leading-relaxed">O sorteio está ativo. Adição, remoção e saída de participantes estão bloqueadas até o administrador invalidar o sorteio. A transferência de administração continua permitida.</p>}
-      <div className="mt-10 grid gap-10 lg:grid-cols-2">
-        <section aria-labelledby="members-title"><h2 id="members-title" className="font-display text-2xl">Participantes</h2>
-          <ul aria-label="Participantes" className="mt-5 divide-y divide-line rounded-xl border border-line bg-field px-5">
-            {members.items.map((member) => <li key={member.id} className="py-4"><p className="font-bold wrap-anywhere">{member.name}{member.id === user.id ? " (você)" : ""}</p><p className="mt-1 text-xs text-muted">{member.id === group.adminId ? "Administrador" : "Participante"}</p>{isAdmin && member.id !== user.id && <div className="mt-2 flex flex-wrap gap-x-5"><GroupOperationButton operation="transfer" groupId={group.id} participantId={member.id} participantName={member.name} />{!group.hasActiveDraw && <GroupOperationButton operation="remove" groupId={group.id} participantId={member.id} participantName={member.name} />}</div>}</li>)}
-          </ul>
-          <nav aria-label="Páginas de participantes" className="mt-3 flex flex-wrap justify-between gap-3">{query.membersCursor && <Link href={`/grupos/${group.id}`} className="py-3 text-sm underline underline-offset-4">Primeiros participantes</Link>}{members.nextCursor && <Link href={`/grupos/${group.id}?membersCursor=${members.nextCursor}`} className="ml-auto py-3 text-sm text-accent underline underline-offset-4">Mais participantes →</Link>}</nav>
+    <section className="max-w-3xl py-8">
+      <Link href="/grupos" className="inline-flex min-h-12 items-center py-3 text-base underline underline-offset-4">← Voltar aos meus grupos</Link>
+      <h1 className="mt-4 text-3xl font-bold wrap-anywhere">{group.name}</h1>
+      <p className="mt-3 text-base text-muted">{group.type === "conventional" ? "Lista em grupo" : "Amigo secreto"} · {group.memberCount} {group.memberCount === 1 ? "participante" : "participantes"}</p>
+      {group.description && <p className="mt-4 leading-relaxed whitespace-pre-line wrap-anywhere">{group.description}</p>}
+      <p className="mt-4 font-bold">{isAdmin ? "Você administra este grupo." : "Você participa deste grupo."}</p>
+      {isAdmin && <Link href={`/grupos/${group.id}/editar`} className="mt-3 inline-flex min-h-12 items-center rounded-lg border border-ink px-4 py-3 text-base underline underline-offset-4">Editar grupo</Link>}
+      {status && <p role="status" className="mt-6 rounded-lg border border-ink bg-soft p-4">{status}</p>}
+      {group.hasActiveDraw && <p className="mt-6 rounded-lg border border-gold bg-field p-4 leading-relaxed">O sorteio já foi feito. Ninguém pode entrar ou sair do grupo agora. Para mudar os participantes, o administrador precisa cancelar o sorteio atual. A administração ainda pode ser transferida.</p>}
+
+      {isAdmin && !group.hasActiveDraw && (
+        <section aria-labelledby="search-title" className="mt-8 rounded-xl border border-line bg-field p-5 sm:p-6">
+          <h2 id="search-title" className="text-2xl font-bold">Adicionar pessoas</h2>
+          <p className="mt-3 leading-relaxed text-muted">A pessoa precisa ter uma conta. Digite o nome dela, pesquise e use “Adicionar”.</p>
+          <form action={`/grupos/${group.id}`} method="get" className="mt-5 grid gap-3">
+            <label htmlFor="member-search" className="font-bold">Pesquisar pessoas pelo nome</label>
+            <input id="member-search" name="q" type="search" defaultValue={typeof query.q === "string" ? query.q : ""} maxLength={100} placeholder="Digite o começo do nome" className="min-h-12 w-full rounded-lg border border-[#8c998d] bg-field p-3 text-base" />
+            <button type="submit" className="min-h-12 rounded-lg bg-ink px-5 py-3 text-base font-bold text-white hover:bg-ink/90 sm:justify-self-start">Pesquisar</button>
+          </form>
+          {!search.success && <p className="mt-4 text-error" role="alert">Use até 100 caracteres e uma página válida para pesquisar.</p>}
+          {search.success && search.data.q && (candidates.items.length ? (
+            <ul aria-label="Resultados da pesquisa" className="mt-5 divide-y divide-line">
+              {candidates.items.map((candidate) => <li key={candidate.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><p className="min-w-0 font-bold wrap-anywhere">{candidate.name}</p><GroupOperationButton operation="add" groupId={group.id} participantId={candidate.id} participantName={candidate.name} /></li>)}
+            </ul>
+          ) : <p className="mt-5 leading-relaxed text-muted">Nenhuma pessoa encontrada. Confira o começo do nome. Pessoas que já estão no grupo não aparecem nesta pesquisa.</p>)}
+          {candidates.nextCursor && search.success && <Link href={`/grupos/${group.id}?q=${encodeURIComponent(search.data.q)}&searchCursor=${candidates.nextCursor}`} className="mt-3 inline-flex min-h-12 items-center py-3 font-bold underline underline-offset-4">Ver mais resultados</Link>}
         </section>
-        {isAdmin && !group.hasActiveDraw && <section aria-labelledby="search-title"><h2 id="search-title" className="font-display text-2xl">Adicionar participantes</h2><p className="mt-3 text-sm leading-relaxed text-muted">Pesquise pessoas cadastradas. Ao adicionar, elas já passam a participar do grupo.</p>
-          <form action={`/grupos/${group.id}`} method="get" className="mt-5 grid gap-3"><label htmlFor="member-search" className="text-sm font-bold">Pesquisar usuários pelo nome</label><div className="flex flex-wrap gap-3"><input id="member-search" name="q" type="search" defaultValue={typeof query.q === "string" ? query.q : ""} maxLength={100} className="min-h-12 min-w-0 flex-1 rounded-lg border border-[#8c998d] bg-field p-3 text-base" /><button type="submit" className="min-h-12 rounded-lg bg-accent px-5 py-3 text-sm text-white">Pesquisar</button></div></form>
-          {!search.success && <p className="mt-4 text-sm text-error" role="alert">Use até 100 caracteres e uma página válida para pesquisar.</p>}
-          {search.success && search.data.q && (candidates.items.length ? <ul aria-label="Resultados da pesquisa" className="mt-5 divide-y divide-line rounded-xl border border-line bg-field px-5">{candidates.items.map((candidate) => <li key={candidate.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><p className="min-w-0 font-bold wrap-anywhere">{candidate.name}</p><GroupOperationButton operation="add" groupId={group.id} participantId={candidate.id} participantName={candidate.name} /></li>)}</ul> : <p className="mt-5 text-sm text-muted">Nenhum usuário fora do grupo encontrado com esse início de nome.</p>)}
-          {candidates.nextCursor && search.success && <Link href={`/grupos/${group.id}?q=${encodeURIComponent(search.data.q)}&searchCursor=${candidates.nextCursor}`} className="mt-3 inline-block py-3 text-sm text-accent underline underline-offset-4">Mais resultados →</Link>}
-        </section>}
-      </div>
-      {!group.hasActiveDraw && <div className="mt-10 border-t border-line pt-5">{isAdmin ? group.memberCount === 1 ? <GroupOperationButton operation="close" groupId={group.id} /> : <p className="text-sm leading-relaxed text-muted">Para sair, transfira a administração para outro participante.</p> : <GroupOperationButton operation="leave" groupId={group.id} />}</div>}
+      )}
+
+      <section aria-labelledby="members-title" className="mt-8">
+        <h2 id="members-title" className="text-2xl font-bold">Quem está no grupo</h2>
+        <ul aria-label="Participantes" className="mt-4 divide-y divide-line rounded-xl border border-line bg-field px-5">
+          {members.items.map((member) => (
+            <li key={member.id} className="py-5">
+              <p className="font-bold wrap-anywhere">{member.name}{member.id === user.id ? " (você)" : ""}</p>
+              <p className="mt-1 text-base text-muted">{member.id === group.adminId ? "Administrador do grupo" : "Participante"}</p>
+              {isAdmin && member.id !== user.id && (
+                <details className="mt-3">
+                  {/* Ações ocasionais ficam separadas da leitura da lista de pessoas.
+                      Recolher controles não concede nem substitui autorização. */}
+                  <summary className="min-h-12 cursor-pointer py-3 text-base underline underline-offset-4 wrap-anywhere">Opções para {member.name}</summary>
+                  <div className="mt-2 grid gap-3 rounded-lg bg-soft p-4">
+                    <p className="text-base leading-relaxed text-muted">Você pode passar a administração para esta pessoa{!group.hasActiveDraw ? " ou removê-la do grupo" : ""}. Toda mudança pede confirmação.</p>
+                    <GroupOperationButton operation="transfer" groupId={group.id} participantId={member.id} participantName={member.name} />
+                    {!group.hasActiveDraw && <GroupOperationButton operation="remove" groupId={group.id} participantId={member.id} participantName={member.name} />}
+                  </div>
+                </details>
+              )}
+            </li>
+          ))}
+        </ul>
+        <nav aria-label="Páginas de participantes" className="mt-3 flex flex-wrap justify-between gap-3">
+          {query.membersCursor && <Link href={`/grupos/${group.id}`} className="min-h-12 py-3 underline underline-offset-4">Voltar aos primeiros participantes</Link>}
+          {members.nextCursor && <Link href={`/grupos/${group.id}?membersCursor=${members.nextCursor}`} className="ml-auto min-h-12 py-3 font-bold underline underline-offset-4">Ver mais participantes</Link>}
+        </nav>
+      </section>
+      {!group.hasActiveDraw && <div className="mt-8 border-t border-line pt-6">{isAdmin ? group.memberCount === 1 ? <GroupOperationButton operation="close" groupId={group.id} /> : <p className="leading-relaxed text-muted">Quer sair? Primeiro escolha outro administrador em “Opções” abaixo do nome de uma pessoa do grupo.</p> : <GroupOperationButton operation="leave" groupId={group.id} />}</div>}
     </section>
   );
 }
