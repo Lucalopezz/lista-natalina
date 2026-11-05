@@ -18,5 +18,5 @@ export function SignOutButton() {
     } catch { setError("Confira sua conexão e tente novamente."); }
     finally { setPending(false); }
   }
-  return <div><button className="inline-flex min-h-12 items-center justify-center rounded-lg border px-[22px] py-3 text-sm no-underline transition-colors disabled:cursor-wait disabled:opacity-65 border-ink bg-transparent text-ink hover:bg-soft" onClick={signOut} disabled={pending}>{pending ? "Saindo…" : "Sair da conta"}</button>{error && <p role="alert" className="m-0 rounded-lg bg-error-bg p-3.5 text-sm leading-relaxed text-error">{error}</p>}</div>;
+  return <div><button className="inline-flex min-h-12 items-center justify-center rounded-lg border px-[22px] py-3 text-base no-underline transition-colors disabled:cursor-wait disabled:opacity-65 border-ink bg-transparent text-ink hover:bg-soft" onClick={signOut} disabled={pending}>{pending ? "Saindo…" : "Sair da conta"}</button>{error && <p role="alert" className="m-0 rounded-lg bg-error-bg p-3.5 text-base leading-relaxed text-error">{error}</p>}</div>;
 }

@@ -8,18 +8,20 @@
   --color-muted: #526354;
   --color-accent: #ab2036;
   --color-gold: #926817;
-  --color-line: #dfdfcf;
+  --color-line: #b9c4b9;
   --color-field: #fffdf8;
   --color-soft: #edf0e3;
   --color-error: #922137;
   --color-error-bg: #f9e6e6;
   --font-sans: Arial, Helvetica, sans-serif;
-  --font-display: Georgia, "Times New Roman", serif;
+  --font-display: Arial, Helvetica, sans-serif;
+  --text-base: 1.125rem;
+  --text-base--line-height: 1.6;
   --breakpoint-md: 45rem;
 }
 
 @layer base {
   :root { color-scheme: light; }
-  body { @apply m-0 bg-paper font-sans text-ink antialiased; }
+  body { @apply m-0 bg-paper font-sans text-base text-ink antialiased; }
   :focus-visible { outline: 3px solid var(--color-accent); outline-offset: 4px; }
 }

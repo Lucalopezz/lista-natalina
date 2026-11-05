@@ -4,5 +4,5 @@ import { getCurrentUser } from "@/modules/auth/session";
 
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   if (await getCurrentUser()) redirect("/dashboard");
-  return <main className="mx-auto max-w-[600px] px-6 pt-7 pb-12 md:px-12 md:pt-10"><Brand />{children}</main>;
+  return <main className="mx-auto max-w-xl px-4 py-6 sm:px-6"><Brand />{children}</main>;
 }

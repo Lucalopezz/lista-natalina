@@ -1,5 +1,11 @@
 import { AuthForm } from "@/modules/auth/components/auth-form";
 export const metadata = { title: "Entrar | Lista Natalina" };
 export default function SignInPage() {
-  return <section className="mt-14" aria-labelledby="signin-title"><p className="text-[11px] leading-[1.8] font-bold tracking-[2px] text-accent uppercase">Bom ter você por aqui</p><h1 className="my-6 font-display text-[clamp(32px,5vw,48px)] leading-[1.15] font-normal tracking-[-1px] wrap-anywhere" id="signin-title">Entre na sua conta.</h1><p className="max-w-[640px] leading-[1.8] text-muted">Seu próximo bom encontro começa aqui.</p><AuthForm mode="sign-in" /></section>;
+  return (
+    <section className="mt-8 rounded-xl border border-line bg-field p-5 sm:p-7" aria-labelledby="signin-title">
+      <h1 id="signin-title" className="text-3xl font-bold">Entrar na minha conta</h1>
+      <p className="mt-3 leading-relaxed text-muted">Digite o email e a senha que você usou no cadastro.</p>
+      <AuthForm mode="sign-in" />
+    </section>
+  );
 }

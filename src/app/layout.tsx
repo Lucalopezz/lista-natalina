@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Lista Natalina | Presentes e encontros",
-  description: "Um lugar para organizar desejos, compartilhar presentes e celebrar juntos.",
+  title: "Lista Natalina | Listas de presentes",
+  description: "Organize sua lista de presentes e reúna família e amigos em grupos.",
 };
 
 export const viewport: Viewport = { themeColor: "#163f2d" };

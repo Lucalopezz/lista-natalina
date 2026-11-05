@@ -1,9 +1,18 @@
 import { Brand } from "@/components/brand";
-import Link from "next/link";
+import { AccountNav } from "@/components/account-nav";
 import { requireCurrentUser } from "@/modules/auth/session";
 import { SignOutButton } from "@/modules/auth/components/sign-out-button";
 
 export default async function PrivateLayout({ children }: { children: React.ReactNode }) {
   await requireCurrentUser();
-  return <main className="mx-auto max-w-[1160px] px-6 pt-7 md:px-12 md:pt-10"><header className="flex flex-wrap items-center gap-5 border-b border-line pb-6"><Brand href="/dashboard" /><nav className="order-3 flex w-full flex-wrap gap-5 md:order-none md:mr-auto md:w-auto [&_a]:py-3 [&_a]:text-sm [&_a]:underline [&_a]:underline-offset-4" aria-label="Navegação da conta"><Link href="/dashboard">Início</Link><Link href="/presentes">Minha lista</Link><Link href="/grupos">Grupos</Link><Link href="/perfil">Meu perfil</Link></nav><SignOutButton /></header>{children}</main>;
+  return (
+    <div className="mx-auto max-w-5xl px-4 sm:px-6">
+      <a href="#conteudo" className="sr-only rounded-lg bg-ink p-4 text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">Pular para o conteúdo</a>
+      <header className="border-b border-line py-5">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3"><Brand href="/dashboard" /><SignOutButton /></div>
+        <AccountNav />
+      </header>
+      <main id="conteudo" tabIndex={-1} className="pb-10 focus:outline-none">{children}</main>
+    </div>
+  );
 }

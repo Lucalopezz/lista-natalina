@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Lista Natalina",
     short_name: "Lista Natalina",
-    description: "Presentes e bons encontros, em um só lugar.",
+    description: "Organize sua lista de presentes e seus grupos.",
     lang: "pt-BR",
     start_url: "/",
     display: "standalone",

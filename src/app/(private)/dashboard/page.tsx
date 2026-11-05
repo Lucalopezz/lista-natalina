@@ -7,21 +7,28 @@ export default async function DashboardPage() {
   const user = await requireCurrentUser();
   const groups = await (await getGroupService()).list(user.id);
   return (
-    <section className="py-12">
-      <p className="text-[11px] font-bold tracking-[2px] text-accent uppercase">Um lugar para suas pessoas e seus desejos</p>
-      <h1 className="my-6 font-display text-[clamp(32px,5vw,48px)] leading-tight tracking-tight wrap-anywhere">Olá, {user.name}.</h1>
-      <p className="max-w-xl leading-relaxed text-muted">Que bom ter você por aqui. Comece reunindo ideias para os próximos bons encontros.</p>
-      <section className="mt-10" aria-labelledby="my-groups-title">
-        <div className="flex flex-wrap items-center justify-between gap-4"><h2 id="my-groups-title" className="font-display text-3xl">Meus grupos</h2><Link href="/grupos/novo" className="inline-flex min-h-12 items-center rounded-lg bg-accent px-5 py-3 text-sm text-white">Criar grupo</Link></div>
-        {groups.items.length ? <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{groups.items.map((group) => <GroupCard key={group.id} group={group} />)}</div> : <p className="mt-5 rounded-xl border border-dashed border-ink/25 bg-soft/50 p-6 text-sm leading-relaxed text-muted">Você ainda não participa de um grupo. Crie um encontro ou peça para um administrador adicionar você.</p>}
-        {groups.nextCursor && <Link href="/grupos" className="mt-3 inline-block py-3 text-sm text-accent underline underline-offset-4">Ver todos os grupos →</Link>}
-      </section>
-      <div className="mt-8 max-w-xl rounded-2xl border border-line bg-soft/60 p-6">
-        <p aria-hidden="true" className="text-3xl">🎁</p>
-        <h2 className="mt-4 font-display text-2xl">Minha lista de presentes</h2>
-        <p className="mt-3 text-sm leading-relaxed text-muted">Livros, pequenos detalhes ou aquele desejo especial. Deixe as pistas de quem você é.</p>
-        <Link className="mt-4 inline-block py-3 text-sm font-bold text-accent underline underline-offset-4" href="/presentes">Ver minha lista →</Link>
+    <section className="py-8">
+      <h1 className="text-3xl leading-tight font-bold wrap-anywhere">Olá, {user.name}.</h1>
+      <p className="mt-3 text-muted">O que você quer fazer?</p>
+      <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <section className="rounded-xl border border-line bg-field p-5 sm:p-6" aria-labelledby="my-list-title">
+          <h2 id="my-list-title" className="text-2xl font-bold">Minha lista de presentes</h2>
+          <p className="mt-3 leading-relaxed text-muted">Adicione o que você gostaria de ganhar. Você pode mudar sua lista quando quiser.</p>
+          <Link href="/presentes" className="mt-5 flex min-h-12 items-center justify-center rounded-lg bg-ink px-5 py-3 text-base font-bold text-white hover:bg-ink/90">Ver minha lista</Link>
+        </section>
+        <section className="rounded-xl border border-line bg-field p-5 sm:p-6" aria-labelledby="create-group-title">
+          <h2 id="create-group-title" className="text-2xl font-bold">Reunir família e amigos</h2>
+          <p className="mt-3 leading-relaxed text-muted">Crie um grupo e adicione pessoas que já têm uma conta.</p>
+          <Link href="/grupos/novo" className="mt-5 flex min-h-12 items-center justify-center rounded-lg border-2 border-ink px-5 py-3 text-base font-bold hover:bg-soft">Criar grupo</Link>
+        </section>
       </div>
+      <section className="mt-10" aria-labelledby="my-groups-title">
+        <h2 id="my-groups-title" className="text-2xl font-bold">Meus grupos</h2>
+        {groups.items.length ? <div className="mt-5 grid gap-4 md:grid-cols-2">{groups.items.map((group) => <GroupCard key={group.id} group={group} />)}</div> : (
+          <p className="mt-4 rounded-xl border border-line bg-field p-5 leading-relaxed text-muted">Você ainda não participa de nenhum grupo. Use o botão “Criar grupo” acima ou peça ao responsável por um grupo para adicionar você.</p>
+        )}
+        {groups.nextCursor && <Link href="/grupos" className="mt-4 inline-flex min-h-12 items-center py-3 font-bold underline underline-offset-4">Ver todos os grupos</Link>}
+      </section>
     </section>
   );
 }
