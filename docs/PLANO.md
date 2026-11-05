@@ -6,7 +6,7 @@ Aplicação web mobile-first para listas pessoais, grupos convencionais e amigo 
 
 Inspeção em 05/11/2026: somente README.md e commit inicial `b54cb55`; `.env` local com `DATABASE_URL`, sem aplicação, dependências ou regras AGENTS.md encontradas nos diretórios ancestrais. Preservar o `.env`; nunca registrar valores ou documentos reais nos logs. Não executar seeds ou alterações no banco existente nesta etapa.
 
-A Fase 1 foi autorizada pelo pedido atual. As fases seguintes serão iniciadas em novas etapas com o usuário. Decisões abaixo identificadas como propostas precisam ser confirmadas antes da implementação da funcionalidade correspondente.
+A Fase 1 foi autorizada pelo pedido atual. As fases seguintes serão iniciadas em novas etapas com o usuário. O complemento definitivo recebido nesta etapa prevalece sobre propostas anteriores. Consulte [REGRAS-DE-NEGOCIO.md](REGRAS-DE-NEGOCIO.md). Somente os pontos explicitamente pendentes precisam de confirmação.
 
 ## Arquitetura
 
@@ -50,8 +50,8 @@ Identificadores de domínio serializados como strings; BSON ObjectId no domínio
 | `gifts` | _id, ownerId, name, description, productUrl, imageUrl, createdAt, updatedAt | ownerId + createdAt + _id para paginação sem limite total de presentes |
 | `groups` | _id, name, description?, type, adminId, membershipVersion, activeDrawId?, createdAt, updatedAt | adminId; versão para serializar alterações de membros/sorteios |
 | `memberships` | _id, groupId, userId, joinedAt | único (groupId,userId); (userId,groupId) para dashboard e compartilhamento |
-| `reservations` | _id, giftId, reservedBy, createdAt | giftId único (somente reservas ativas); reservedBy para consultas e limpeza |
-| `draws` | _id, groupId, membershipVersion, status, createdBy, createdAt | groupId + createdAt; registro da versão dos membros e do sorteio invalidado |
+| `reservations` | _id, giftId, groupId, reservedBy, drawId? (edição), status, createdAt, updatedAt, cancelledAt? | único parcial (groupId,giftId) onde status=active; (groupId,drawId,status) para invalidação; reservedBy |
+| `draws` | _id (edição), groupId, membershipVersion, status: active/invalidated, createdBy, createdAt, invalidatedAt? | groupId + createdAt; único parcial groupId onde status=active |
 | `assignments` | _id, drawId, giverId, recipientId | únicos (drawId,giverId) e (drawId,recipientId); leitura somente pelo par drawId + usuário da sessão |
 
 Participações ficam em coleção própria para busca bidirecional e unicidade sem crescer o documento do grupo. Reservas são separadas para não vazar estado junto do presente ao proprietário. Atribuições são referências separadas: nenhuma rota retorna o conjunto; administrador recebe somente metadados. Não há endpoint para ler atribuição passando um giverId arbitrário. Dados pequenos de valor podem ser incorporados; não copiar listas pessoais para os grupos. IDs de grupos convencionais não aceitam sorteio.
@@ -61,27 +61,24 @@ Participações ficam em coleção própria para busca bidirecional e unicidade 
 MongoDB não tem FKs: serviços verificam referências e usam transações para mudanças relacionadas. Requer replica set/Atlas com suporte a transações. Não iniciar sorteios em standalone sem oferecer erro de configuração claro.
 
 - Criar grupo e primeira participação na mesma transação.
-- Reserva: verificar acesso e dono, inserir com índice único giftId e tratar conflito como indisponível; não usar apenas sequência consultar→inserir. Concorrer reserva com saída/exclusão exige transação e escrita de versão no recurso de autorização compartilhado, evitando write skew. Testar explicitamente esses interleavings na Fase 5.
-- Cancelar reserva filtrando giftId e reservedBy autenticado; somente o reservante cancela. Excluir presente e reserva juntos.
-- DTO do proprietário omite inclusive campo de disponibilidade. DTO de terceiro autorizado mostra apenas disponível/reservado e `canCancel` calculado, sem identidade do reservante.
+- Reserva: verificar acesso e dono, inserir com índice único parcial (groupId,giftId), status=active e tratar conflito como indisponível; não usar apenas sequência consultar→inserir. Concorrer reserva com saída, exclusão, invalidação ou novo sorteio exige transação e escrita de versão no recurso de autorização compartilhado (grupo), evitando write skew. A criação da reserva em amigo secreto verifica também activeDrawId e atribuição do reservante dentro da transação. Testar explicitamente esses interleavings na Fase 5.
+- Cancelar reserva filtrando groupId, giftId, status e reservedBy autenticado; somente o reservante cancela manualmente. Cancelamentos sistêmicos por invalidação/saída são transacionais. Excluir presente cancela suas reservas em todos os grupos sem revelar estado ao dono.
+- Toda consulta de lista alheia exige groupId e autorização nesse contexto: grupo convencional permite acesso entre membros; amigo secreto exige sorteio ativo e destinatário igual ao dono da lista. Outro grupo compartilhado não concede acesso ao contexto solicitado. DTO do proprietário omite inclusive campo de disponibilidade. DTO de terceiro autorizado consulta somente as reservas ativas do grupo atual e da edição ativa quando aplicável, e mostra apenas disponível/reservado e `canCancel` calculado, sem identidade do reservante.
 - Sorteio: ler snapshot de membros, exigir pelo menos três (proposta), embaralhar com aleatoriedade criptográfica no servidor e gerar permutação sem pontos fixos; testar invariantes. Não usar Math.random. Não prometer distribuição uniforme se o algoritmo escolhido não a oferecer.
 - Gravar draw + assignments e atualizar activeDrawId com comparação de membershipVersion numa transação. Mutação de membros também escreve a versão do grupo. Conflitos abortam/repetem com limite; erro de concorrência é tratado na interface.
-- Novo sorteio invalida anterior atomicamente; consultar apenas activeDrawId válido e atribuição do usuário autenticado. Nenhuma atribuição em logs, HTML de outros usuários, payloads coletivos ou cache compartilhado.
-- Busca de usuários por prefixo, paginada, com limites por requisição e projeção mínima (id e nome). Email não é campo público nem parte da busca. Perfis e listas completos apenas de si ou de quem compartilha grupo.
+- Novo sorteio invalida anterior e cancela suas reservas na mesma transação, preservando outros grupos; consultar apenas activeDrawId válido e atribuição do usuário autenticado. Nenhuma atribuição em logs, HTML de outros usuários, payloads coletivos ou cache compartilhado.
+- Busca de usuários por prefixo, paginada, com limites por requisição e projeção mínima (id e nome). Email não é campo público nem parte da busca. Perfil básico de membros exige contexto; listas seguem a autorização específica do tipo de grupo e edição, nunca apenas existência de grupo compartilhado.
 
-## Decisões de negócio pendentes (propostas)
+## Regras definitivas e pontos pendentes
 
-Aprovar antes das respectivas fases; estas regras ainda não estão implementadas.
+As regras definitivas e a matriz de testes estão em [REGRAS-DE-NEGOCIO.md](REGRAS-DE-NEGOCIO.md). Elas substituem as propostas iniciais sobre acesso por qualquer grupo, reservas globais, persistência de reservas ao refazer e invalidação automática por mudança de membros.
 
-1. **Saída do administrador:** transferir administração para membro existente antes de sair; se for o único membro, permitir excluir o grupo com confirmação. Nenhuma transferência automática silenciosa.
-2. **Participantes após sorteio:** adição, remoção ou saída invalidam imediatamente o sorteio inteiro e avisam o grupo; administrador precisa sortear novamente. Transação impede resultado parcialmente válido.
-3. **Reservas e novo sorteio:** reservas são globais por presente, não por grupo ou sorteio, e permanecem após novo sorteio. Sorteio não implica compra nem reserva automática.
-4. **Perda de acesso:** saída/remoção cancela reservas do usuário em listas às quais ele perde o último grupo compartilhado. Reservas persistem quando outro grupo ainda autoriza acesso. Limpeza acontece no servidor junto da alteração, sem revelar nada ao dono.
-5. **Sorteio mínimo:** três pessoas. Duas tecnicamente funcionam, mas deixam os resultados dedutíveis; confirmar preferência.
-6. **Administração:** administrador pode remover outro participante, editar grupo e transferir administração; excluir grupo exige confirmação e remove participações/sorteios, preservando usuários e presentes pessoais. Operações de exclusão precisam ter estratégia transacional compatível com o volume; sem limite arbitrário de presentes.
-7. **Perfil e busca:** diretório restrito a autenticados, exibindo somente id/nome; perfil detalhado restrito a grupos compartilhados. Sem listagem pública de emails.
-8. **Conta:** sem exclusão de conta na primeira versão, até definir retenção/remoção em grupos e atribuições. Nome editável e recuperação/verificação de email precisam de confirmação de escopo.
-9. **URLs:** aceitar apenas HTTP/HTTPS para produtos/imagens; imagens não serão baixadas pelo servidor na primeira versão, evitando proxy aberto/SSRF. Descrição é texto simples, sem HTML arbitrário.
+- A autorização é contextual por grupo, usuário e edição ativa. Convencionais compartilham listas; amigo secreto restringe ao destinatário após sorteio e bloqueia listas alheias antes dele.
+- Reservas pertencem ao grupo; em amigo secreto pertencem também à edição. Invalidação e novo sorteio cancelam reservas somente da edição afetada, atomicamente.
+- Composição de amigo secreto fica bloqueada durante sorteio ativo, inclusive adições. Somente administrador invalida explicitamente antes de alterar membros.
+- Grupo tem exatamente um administrador, que só transfere para membro atual. Transferência não altera sorteio e não contorna bloqueio de saída.
+
+Pendências restantes (não implementar sem definir): mínimo de participantes (proposta: três), tratamento do último membro/administrador (proposta: exclusão confirmada do grupo), exclusão de conta/retencão de histórico, edição do perfil, recuperação/verificação de email e política final de sessões/senha. Busca autenticada mínima por id/nome; email privado. Proposta de URLs apenas HTTP/HTTPS sem proxy de imagens; descrição em texto simples.
 
 ## Plano incremental e critérios de aceite
 
@@ -96,7 +93,7 @@ Aprovar antes das respectivas fases; estas regras ainda não estão implementada
 - [ ] Proteger segredos com .gitignore e template sem valores reais; documentar desenvolvimento e Vercel.
 - [ ] Executar testes, lint, typecheck, build e auditoria de dependências; registrar resultados e commits.
 
-Autenticação fica definida, mas ainda não implementada. Não criar schemas vazios de funcionalidades, migrar banco ou efetuar deploy nesta etapa.
+Autenticação fica recomendada, mas ainda não implementada. Não criar schemas vazios de funcionalidades, migrar banco ou efetuar deploy nesta etapa.
 
 ### Fase 2 — Autenticação e usuários
 
@@ -108,15 +105,15 @@ TDD de criação, edição, exclusão, URLs inseguras, entrada inválida e alter
 
 ### Fase 4 — Grupos e dashboard
 
-Aprovar regras de administração/saída e diretório. TDD de criação atômica, inclusão automática, duplicidade, permissões, transferência, remoção e saída. Implementar grupos convencionais e tipo amigo secreto, participantes, busca por nome, edição e dashboard. Acessos sempre filtrados por membership. Criar índices necessários com procedimento explícito e idempotente, sem rodar toda migração a cada request.
+Aplicar regras definitivas de administração e bloqueio por sorteio ativo; definir último membro e diretório. TDD de criação atômica, inclusão automática, duplicidade, permissões, transferência, remoção e saída. Implementar grupos convencionais e tipo amigo secreto, participantes, busca por nome, edição e dashboard. Acessos sempre filtrados por membership. Criar índices necessários com procedimento explícito e idempotente, sem rodar toda migração a cada request.
 
 ### Fase 5 — Compartilhamento e reservas
 
-Aprovar persistência/cancelamento de reservas ao perder acesso. TDD de consulta autorizada e negada por ID, omissão de estado para dono, reserva própria negada, duas reservas concorrentes, cancelamento por terceiro negado, exclusão/saída concorrente. Testar contra MongoDB real isolado, incluindo índices únicos e transações. UI disponível/reservado e cancelar somente própria reserva, sem revelar reservante.
+Aplicar reservas contextuais e cancelamento ao perder participação no grupo específico. TDD de consulta autorizada e negada por ID, omissão de estado para dono, reserva própria negada, duas reservas concorrentes, cancelamento por terceiro negado, exclusão/saída concorrente. Testar contra MongoDB real isolado, incluindo índices únicos e transações. UI disponível/reservado e cancelar somente própria reserva, sem revelar reservante.
 
 ### Fase 6 — Amigo secreto
 
-Aprovar mínimo de pessoas, invalidar por membros e política de novo sorteio. TDD de invariantes para várias quantidades, insuficiência, não administrador, persistência, leitura alheia negada, novo sorteio e concorrência com membros/sorteios. Seção Meu amigo secreto com nome/perfil/lista e disponibilidade; confirmação antes de refazer. Admin sem relatório coletivo de atribuições.
+Aprovar mínimo de pessoas; aplicar invalidação explícita e novo sorteio com cancelamento atômico das reservas da edição. TDD de invariantes para várias quantidades, insuficiência, não administrador, persistência, leitura alheia negada, novo sorteio e concorrência com membros/sorteios/reservas. Executar todos os cenários adicionais da matriz em REGRAS-DE-NEGOCIO.md. Seção Meu amigo secreto com nome/perfil/lista e disponibilidade; confirmação antes de refazer. Admin sem relatório coletivo de atribuições.
 
 ### Fase 7 — Finalização e preparação de deploy
 
