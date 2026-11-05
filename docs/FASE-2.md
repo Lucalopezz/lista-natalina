@@ -35,7 +35,7 @@ POSTs exigem Origin igual a BETTER_AUTH_URL. Entrada inválida retorna 400; orig
 
 O usuário confirmou que o banco do `.env` é produção e corrigiu sua conexão. `pnpm db:check` passou em ping/topologia compatível com transações, sem alterar dados. Nenhum cadastro automatizado, índice ou limpeza de teste foi executado nesse banco.
 
-Foi criada configuração privada local de auth em `.env.local`, ignorada pelo Git, com segredo gerado sem exibição e origem http://localhost:3000. O arquivo `.env` foi preservado. O servidor local usa o banco de produção, portanto contas criadas manualmente nessa execução serão reais.
+Foi criada configuração privada local de auth com segredo gerado sem exibição e origem http://localhost:3000. Com autorização do usuário, as novas variáveis foram centralizadas no `.env`, ignorado pelo Git; a URI existente foi preservada e as duplicatas removidas do `.env.local`. O servidor local usa o banco de produção, portanto contas criadas manualmente nessa execução serão reais.
 
 Para Vercel: definir DATABASE_URL, nome do banco se necessário, BETTER_AUTH_SECRET com pelo menos 32 caracteres aleatórios e BETTER_AUTH_URL igual à origem HTTPS exata. Usar segredo próprio por ambiente. Nenhum deploy foi realizado. Configuração de preview ainda exige banco separado; não propagar automaticamente URI de produção.
 
