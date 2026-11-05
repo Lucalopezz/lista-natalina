@@ -26,7 +26,7 @@ Operações privadas não terão cache compartilhado. Server Actions validam ide
 
 | Área | Escolha | Motivo / alternativa |
 | --- | --- | --- |
-| Framework | Next.js + React + TypeScript estrito | App Router e aplicação única; versões resolvidas no package-lock.json |
+| Framework | Next.js + React + TypeScript estrito | App Router e aplicação única; versões resolvidas no pnpm-lock.yaml |
 | Banco | Driver oficial `mongodb` | Pool, índices e transações explícitos; Mongoose adicionaria ODM e duplicação de schemas sem benefício imediato |
 | Validação | Zod | Schemas reutilizáveis; erros públicos sanitizados |
 | Autenticação (Fase 2) | Better Auth, adapter MongoDB | Email/senha, sessões persistidas e hash seguro mantidos pela biblioteca; confirmar versão e integração no início da fase |
@@ -48,7 +48,7 @@ Identificadores de domínio serializados como strings; BSON ObjectId no domínio
 | `session` | id, userId, token, expiresAt, createdAt, updatedAt | token único, userId; TTL expiresAt; validar expiração também na aplicação |
 | `verification` | campos do adapter para verificação/recuperação | índices e TTL conforme versão; nenhuma exposição pública |
 | `gifts` | _id, ownerId, name, description, productUrl, imageUrl, createdAt, updatedAt | ownerId + createdAt + _id para paginação sem limite total de presentes |
-| `groups` | _id, name, description?, type, adminId, membershipVersion, activeDrawId?, createdAt, updatedAt | adminId; versão para serializar alterações de membros/sorteios |
+| `groups` | _id, name, description?, type, adminId, membershipVersion, writeVersion, activeDrawId?, createdAt, updatedAt | adminId; versão para serializar alterações de membros/sorteios |
 | `memberships` | _id, groupId, userId, joinedAt | único (groupId,userId); (userId,groupId) para dashboard e compartilhamento |
 | `reservations` | _id, giftId, groupId, reservedBy, drawId? (edição), status, createdAt, updatedAt, cancelledAt? | único parcial (groupId,giftId) onde status=active; (groupId,drawId,status) para invalidação; reservedBy |
 | `draws` | _id (edição), groupId, membershipVersion, status: active/invalidated, createdBy, createdAt, invalidatedAt? | groupId + createdAt; único parcial groupId onde status=active |
@@ -86,12 +86,12 @@ Pendências restantes (não implementar sem definir): mínimo de participantes (
 
 - [x] Inspecionar Git, arquivos, ambiente e regras existentes.
 - [x] Documentar arquitetura, coleções, escolhas, regras pendentes e plano integral.
-- [ ] Criar Next.js App Router/TypeScript estrito e página inicial responsiva de apresentação da base, sem botões de funcionalidades inexistentes.
-- [ ] Configurar ESLint, Vitest e scripts de validação; adicionar testes primeiro para ambiente e conexão reutilizável.
-- [ ] Validar DATABASE_URL sem mostrar valores; conexão lazy server-only com pool e tratamento de falha.
-- [ ] Oferecer diagnóstico read-only explícito do banco, sem criar índices/coleções nem alterar registros existentes.
-- [ ] Proteger segredos com .gitignore e template sem valores reais; documentar desenvolvimento e Vercel.
-- [ ] Executar testes, lint, typecheck, build e auditoria de dependências; registrar resultados e commits.
+- [x] Criar Next.js App Router/TypeScript estrito e página inicial responsiva de apresentação da base, sem botões de funcionalidades inexistentes.
+- [x] Configurar ESLint, Vitest e scripts de validação; adicionar testes primeiro para ambiente e conexão reutilizável.
+- [x] Validar DATABASE_URL sem mostrar valores; conexão lazy server-only com pool e tratamento de falha.
+- [x] Oferecer diagnóstico read-only explícito do banco, sem criar índices/coleções nem alterar registros existentes.
+- [x] Proteger segredos com .gitignore e template sem valores reais; documentar desenvolvimento e Vercel.
+- [x] Executar testes, lint, typecheck, build e auditoria de dependências; registrar resultados e commits.
 
 Autenticação fica recomendada, mas ainda não implementada. Não criar schemas vazios de funcionalidades, migrar banco ou efetuar deploy nesta etapa.
 
@@ -123,9 +123,13 @@ Revisar IDOR, DTOs, sessões, XSS, CSRF, URLs, logs e rate limiting distribuído
 
 Cada comportamento: escrever teste → executar e registrar falha esperada → implementar mínimo → executar verde → refatorar → executar novamente. Testes de integração usam banco dedicado com replica set, URI separada e proteção contra banco de produção. Não limpar banco da DATABASE_URL existente. E2E com dados descartáveis. Não criar testes que apenas repitam o JSX ou constantes.
 
-Commits Conventional Commits em unidades verificadas, sem push automático: planejamento/configuração, testes de infraestrutura e implementação da base. Antes de cada commit executar verificações pertinentes; no fim da fase rodar conjunto completo. Nunca usar `git add .` sem inspeção de segredos. O lockfile será versionado; CI usará npm ci.
+Commits Conventional Commits em unidades verificadas, sem push automático: planejamento/configuração, testes de infraestrutura e implementação da base. Antes de cada commit executar verificações pertinentes; no fim da fase rodar conjunto completo. Nunca usar `git add .` sem inspeção de segredos. O lockfile será versionado; CI usará pnpm install --frozen-lockfile.
 
 Cada entrega informa resultado, arquivos principais com links, testes e limitações, hashes dos commits e próxima fase. Adotamos esse formato de revisão também nas próximas entregas.
+
+## Estado da Fase 1
+
+Base implementada e validada com pnpm; ver [FASE-1.md](FASE-1.md). Conexão real com o MongoDB pendente: o servidor recusou autenticação (código 8000). Nenhum dado ou credencial foi alterado. As demais fases ainda não foram iniciadas.
 
 ## Referências oficiais consultadas
 
