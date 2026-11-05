@@ -1,6 +1,6 @@
 # Lista Natalina
 
-Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeScript, MongoDB e Tailwind CSS. Já estão implementados cadastro, entrada, logout, sessão, perfil próprio e lista pessoal de presentes. Grupos, reservas e sorteios serão entregues nas próximas fases.
+Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeScript, MongoDB e Tailwind CSS. Já estão implementados cadastro, entrada, logout, sessão, perfil próprio, lista pessoal de presentes e gerenciamento de grupos. Compartilhamento de listas, reservas e sorteios serão entregues nas próximas fases.
 
 ## Documentação
 
@@ -11,6 +11,7 @@ Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeSc
 - [Fase 1: estrutura](docs/FASE-1.md)
 - [Fase 2: autenticação, contrato HTTP e testes](docs/FASE-2.md)
 - [Fase 3: lista pessoal e autorização](docs/FASE-3.md)
+- [Fase 4: grupos, participantes e administração](docs/FASE-4.md)
 
 ## Desenvolvimento
 
@@ -21,7 +22,7 @@ pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Abra http://localhost:3000. Rotas: `/`, `/cadastro`, `/entrar`, `/dashboard`, `/perfil` e `/presentes`. Dashboard, perfil e presentes exigem sessão validada no servidor. Senha de 6–128 caracteres; sessão de 7 dias; sem confirmação de email nem recuperação de senha.
+Abra http://localhost:3000. Rotas: `/`, `/cadastro`, `/entrar`, `/dashboard`, `/perfil`, `/presentes` e `/grupos`. Dashboard, perfil, presentes e grupos exigem sessão validada no servidor. Senha de 6–128 caracteres; sessão de 7 dias; sem confirmação de email nem recuperação de senha.
 
 Preserve arquivos locais existentes. Em novo checkout, use `.env.example` como referência e configure arquivos privados sem versioná-los. `.env` e `.env.local` estão ignorados pelo Git. O banco existente é de **produção**, conforme decisão do usuário: não usar para dados automatizados de teste, seed ou limpeza. Cadastros manuais no servidor local conectado a ele criam contas reais.
 
@@ -51,11 +52,13 @@ pnpm test:e2e             # Build e navegador com outro MongoDB descartável
 
 Os runners de integração/E2E não usam o banco do `.env`: criam containers com tmpfs e portas aleatórias, sobrescrevem as variáveis no processo de teste e limpam somente recursos próprios. Reutilizam a imagem `mongo:7.0.45` quando já disponível. E2E usa Chromium local quando instalado; caso contrário, `pnpm exec playwright install chromium`. Capturas e traces ficam em `test-results`, ignorado pelo Git.
 
+A fixture E2E limpa somente contadores de rate limit entre cenários no banco descartável validado, para isolar os cadastros dos testes. A proteção da aplicação permanece habilitada e possui testes próprios de integração. Para filtrar o navegador após o build: `bash scripts/test-auth.sh e2e e2e/groups.spec.ts`.
+
 `db:check` consulta ping/topologia, fecha a conexão e não imprime URI, hosts, credenciais ou documentos; não cria coleções/índices/dados. Verificação de topologia não substitui testes de transações reais.
 
 ## Organização e interface
 
-`src/app`: páginas/layouts/Route Handlers. `src/modules/auth`: validação, configuração Better Auth, índices, adaptador HTTP, sessão e formulários. `src/modules/gifts`: validação, serviços, repositório, Server Actions e UI da lista pessoal. `src/lib/db`: pool MongoDB reutilizável e server-only. Testes junto dos módulos. Novos módulos serão adicionados conforme cada fase, sem implementações vazias.
+`src/app`: páginas/layouts/Route Handlers. `src/modules/auth`: validação, configuração Better Auth, índices, adaptador HTTP, sessão e formulários. `src/modules/gifts`: validação, serviços, repositório, Server Actions e UI da lista pessoal. `src/modules/groups`: regras de administração, participações, transações, consultas públicas mínimas e UI dos grupos. `src/lib/db`: pool MongoDB reutilizável e server-only. Testes junto dos módulos. Novos módulos serão adicionados conforme cada fase, sem implementações vazias.
 
 Server Components são o padrão. Formulários usam o handler HTTP para manter cookies e rate limiting da biblioteca. Presentes usam Server Actions autenticadas e revalidação após sucesso. Regras de domínio não pertencem aos componentes React. Listas alheias/reservas futuras sempre exigirão contexto explícito do grupo.
 
@@ -64,6 +67,14 @@ Estilos usam Tailwind CSS. Tokens da paleta natalina estão em `src/app/globals.
 ## Lista de presentes
 
 Acesse `/presentes` após entrar. Nome, descrição e link HTTP/HTTPS do produto são obrigatórios. URL da imagem é opcional; imagem ausente ou com falha usa a ilustração local `public/images/gift-default.svg`. A lista tem paginação de 24 itens, sem limite total de presentes. Somente o proprietário consulta, edita e exclui seus itens nesta fase; exclusão exige confirmação. Compartilhamento será implementado por contexto de grupo.
+
+## Grupos
+
+Acesse `/grupos` ou os cards no dashboard. Crie um grupo convencional ou de amigo secreto; o criador já é membro e administrador. O administrador pesquisa pelo início do nome e adiciona usuários diretamente, edita nome/descrição, remove membros e transfere sua função para outro participante. O tipo fica definido na criação.
+
+Participantes podem sair. Com outros membros, o administrador precisa transferir a função antes; sendo o último, pode encerrar com confirmação. Sorteio ativo bloqueia alterações de participantes e encerramento no servidor, preservando a possibilidade de transferência. A realização/invalidação do sorteio pertence à Fase 6. Grupos e membros são paginados, sem limite total arbitrário.
+
+O acesso às informações exige participação no grupo; a busca administrativa retorna somente id/nome. Nesta fase, o grupo ainda não dá acesso às listas alheias. Usuários e listas pessoais são preservados ao encerrar o grupo.
 
 ## Ícone da aplicação
 

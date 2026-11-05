@@ -49,6 +49,7 @@ Exemplo do nível de explicação esperado para uma futura operação de reserva
 - Separe apresentação, validação, serviços/regras, persistência e autorização. Crie módulos em `src/modules` conforme a funcionalidade; evite abstrações e dependências sem benefício concreto.
 - Valide identidade no servidor em toda operação privada. Use usuário da sessão, nunca identidade enviada pelo cliente como fonte de autoridade.
 - Toda lista alheia e reserva exige contexto de grupo; amigo secreto exige edição/atribuição autorizada. Nunca substitua isso por uma consulta genérica de grupos em comum.
+- Grupo deve sempre ter um administrador participante. O último administrador só encerra com confirmação e sem sorteio ativo; com outros membros, transfere a função antes de sair.
 - URL de imagem de presente é opcional. Use a ilustração local padrão quando ausente ou com falha; continue validando URLs informadas.
 - Nunca exponha reservas ao dono do presente nem resultados alheios ao administrador. Retorne DTOs explícitos, sem documentos completos ou cache compartilhado de dados privados.
 - Use runtime Node.js para MongoDB, conexão reutilizável e transações para consistência entre documentos relacionados.
@@ -77,7 +78,7 @@ Exemplo do nível de explicação esperado para uma futura operação de reserva
 - Faça commits pequenos por unidade funcional, usando Conventional Commits: `feat`, `fix`, `test`, `refactor`, `docs`, `chore` etc.
 - O título deve explicar a mudança concreta. Evite juntar alterações independentes ou criar commits que afirmem entregar funcionalidade ainda ausente.
 - Revise diff e arquivos preparados, preservando alterações não relacionadas. Nunca versionar `.env`, node_modules, builds, cobertura ou segredos.
-- O usuário autorizou commits, push e o avanço incremental até a Fase 3 nesta sessão. Faça push dos commits dessa entrega após validar; deploy/publicação da aplicação continua fora do escopo. Em novas tarefas, siga o escopo autorizado pelo usuário.
+- O usuário autorizou commits, push e o avanço incremental até a Fase 4 nesta sessão. Faça push dos commits dessa entrega após validar; deploy/publicação da aplicação continua fora do escopo. Em novas tarefas, siga o escopo autorizado pelo usuário.
 - Ao encerrar uma fase, atualize o contexto quando o estado, as decisões ou as pendências tiverem mudado. Não registre sucesso sem a verificação correspondente.
 
 ## Origem das preferências

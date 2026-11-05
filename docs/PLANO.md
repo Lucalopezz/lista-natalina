@@ -78,7 +78,7 @@ As regras definitivas e a matriz de testes estão em [REGRAS-DE-NEGOCIO.md](REGR
 - Composição de amigo secreto fica bloqueada durante sorteio ativo, inclusive adições. Somente administrador invalida explicitamente antes de alterar membros.
 - Grupo tem exatamente um administrador, que só transfere para membro atual. Transferência não altera sorteio e não contorna bloqueio de saída.
 
-Pendências restantes (não implementar sem definir): mínimo de participantes (proposta: três), tratamento do último membro/administrador (proposta: exclusão confirmada do grupo), exclusão de conta/retencão de histórico, edição do perfil, política de edição do perfil. Busca autenticada mínima por id/nome; email privado. Proposta de URLs apenas HTTP/HTTPS sem proxy de imagens; descrição em texto simples.
+Pendências restantes (não implementar sem definir): mínimo de participantes (proposta: três), exclusão de conta/retencão de histórico, edição do perfil, política de edição do perfil. Busca autenticada mínima por id/nome; email privado. Proposta de URLs apenas HTTP/HTTPS sem proxy de imagens; descrição em texto simples.
 
 ## Plano incremental e critérios de aceite
 
@@ -105,7 +105,7 @@ Fase implementada: ver [FASE-3.md](FASE-3.md). Imagem é opcional, com ilustraç
 
 ### Fase 4 — Grupos e dashboard
 
-Aplicar regras definitivas de administração e bloqueio por sorteio ativo; definir último membro e diretório. TDD de criação atômica, inclusão automática, duplicidade, permissões, transferência, remoção e saída. Implementar grupos convencionais e tipo amigo secreto, participantes, busca por nome, edição e dashboard. Acessos sempre filtrados por membership. Criar índices necessários com procedimento explícito e idempotente, sem rodar toda migração a cada request.
+Fase implementada: ver [FASE-4.md](FASE-4.md). Último administrador encerra com confirmação e sem sorteio ativo, conforme definição do usuário. Aplicar regras definitivas de administração e bloqueio por sorteio ativo. TDD de criação atômica, inclusão automática, duplicidade, permissões, transferência, remoção e saída. Implementar grupos convencionais e tipo amigo secreto, participantes, busca por nome, edição e dashboard. Acessos sempre filtrados por membership. Criar índices necessários com procedimento explícito e idempotente, sem rodar toda migração a cada request.
 
 ### Fase 5 — Compartilhamento e reservas
 
@@ -129,7 +129,7 @@ Cada entrega informa resultado, arquivos principais com links, testes e limitaç
 
 ## Estado da Fase 1
 
-Base implementada e validada com pnpm; ver [FASE-1.md](FASE-1.md). A pendência inicial de autenticação do MongoDB foi resolvida pelo usuário na Fase 2; ping e topologia transacional confirmados. Nenhum dado ou credencial foi alterado. Fase 2 implementada; consulte [FASE-2.md](FASE-2.md). Fase 3 implementada: ver [FASE-3.md](FASE-3.md). Fases 4–7 ainda não iniciadas.
+Base implementada e validada com pnpm; ver [FASE-1.md](FASE-1.md). A pendência inicial de autenticação do MongoDB foi resolvida pelo usuário na Fase 2; ping e topologia transacional confirmados. Nenhum dado ou credencial foi alterado. Fase 2 implementada; consulte [FASE-2.md](FASE-2.md). Fase 3 implementada: ver [FASE-3.md](FASE-3.md). Fase 4 implementada: ver [FASE-4.md](FASE-4.md). Fases 5–7 ainda não iniciadas.
 
 ## Referências oficiais consultadas
 

@@ -4,7 +4,7 @@
 
 ## Objetivo
 
-Aplicação full-stack mobile-first para listas pessoais de presentes, grupos convencionais e amigo secreto, com reservas privadas e resultados individuais confidenciais. Next.js App Router, TypeScript e MongoDB, em projeto único compatível com Vercel. Desenvolvimento incremental com TDD e commits locais.
+Aplicação full-stack mobile-first para listas pessoais de presentes, grupos convencionais e amigo secreto, com reservas privadas e resultados individuais confidenciais. Next.js App Router, TypeScript e MongoDB, em projeto único compatível com Vercel. Desenvolvimento incremental com TDD, commits pequenos e push autorizado.
 
 ## Fontes de decisão
 
@@ -17,8 +17,8 @@ O perfil ai-memory contribui com preferências de comunicação, conforme a orig
 
 ## Estado implementado
 
-- Fases 1, 2 e 3 implementadas. Fases 4–7 ainda não iniciadas. Consulte [FASE-2.md](docs/FASE-2.md) para autenticação, ambiente e testes.
-- Next.js 16.4.5, React 19.3.1 e TypeScript estrito; página pública, cadastro, entrada, dashboard, perfil e CRUD da lista pessoal; Tailwind CSS com paleta natalina.
+- Fases 1–4 implementadas. Fases 5–7 ainda não iniciadas. Grupos: [FASE-4.md](docs/FASE-4.md). Consulte [FASE-2.md](docs/FASE-2.md) para autenticação, ambiente e testes.
+- Next.js 16.4.5, React 19.3.1 e TypeScript estrito; página pública, cadastro, entrada, dashboard, perfil, CRUD da lista pessoal e gerenciamento de grupos; Tailwind CSS com paleta natalina.
 - pnpm 12.11.2 em packageManager, pnpm-lock.yaml versionado e Node.js 24 como alvo. Instalação npm anterior removida; manter package.json.
 - Zod para validar ambiente privado, usando o nome existente `DATABASE_URL`; `DATABASE_NAME` opcional. Sem nome explícito, o driver usa o da URI ou seu padrão: confirmar banco antes de escrever.
 - Driver oficial MongoDB em módulo server-only; conexão lazy, promessa global por instância, pool máximo 10, conexão inicial descartada após falha para permitir nova tentativa.
@@ -38,9 +38,10 @@ O perfil ai-memory contribui com preferências de comunicação, conforme a orig
 | `.github/workflows/validacao.yml` | Instalação reproduzível e verificação no CI |
 | `src/modules/auth` | Autenticação e sessão |
 | `src/modules/gifts` | Validação, casos de uso, persistência, Server Actions e UI da lista pessoal |
-| Demais módulos futuros | users, groups, reservations e secret-santa, criados conforme cada fase |
+| `src/modules/groups` | Administração, participantes, pesquisa mínima, transações e UI de grupos |
+| Demais módulos futuros | users, reservations e secret-santa, criados conforme cada fase |
 
-Better Auth 1.7.17 com adapter MongoDB implementado. Senha de 6–128 caracteres, sessão de 7 dias, sem confirmação de email nem recuperação de senha (decisões explícitas do usuário). Há cadastro/login/logout/perfil e índices de auth. Presentes implementados na [Fase 3](docs/FASE-3.md), incluindo paginação de 24 itens sem limite total, edição/exclusão restritas ao dono e imagem opcional com ilustração local padrão. Grupos, reservas e sorteios ainda não implementados.
+Better Auth 1.7.17 com adapter MongoDB implementado. Senha de 6–128 caracteres, sessão de 7 dias, sem confirmação de email nem recuperação de senha (decisões explícitas do usuário). Há cadastro/login/logout/perfil e índices de auth. Presentes implementados na [Fase 3](docs/FASE-3.md), incluindo paginação de 24 itens sem limite total, edição/exclusão restritas ao dono e imagem opcional com ilustração local padrão. Grupos implementados na Fase 4. Compartilhamento de listas, reservas e sorteios ainda não implementados.
 
 ## Invariantes de negócio
 
@@ -60,7 +61,7 @@ A implementação deve seguir os detalhes e a matriz de testes do complemento de
 
 ## Verificações e ambiente
 
-Fase 3: 77 testes isolados, 23 de integração com MongoDB descartável e oito E2E Playwright (desktop/celular) aprovados; lint, TypeScript e build também. Capturas de cards, imagem padrão e confirmação de exclusão revisadas. `pnpm audit --prod` não encontrou vulnerabilidades conhecidas. Auditorias são retratos do momento, revalidar quando necessário.
+Fase 4: 123 testes isolados, 37 de integração com MongoDB descartável e dez E2E Playwright (desktop/celular) aprovados; lint, TypeScript e build também. Capturas de grupos/participantes e os fluxos anteriores revisados. `pnpm audit --prod` não encontrou vulnerabilidades conhecidas. Auditorias são retratos do momento, revalidar quando necessário.
 
 O usuário corrigiu a conexão e definiu o banco como **produção**, com nome explícito `lista-natalina` (DATABASE_NAME no .env). Auth bloqueia escritas se o nome estiver implícito. Ping e topologia transacional confirmados sem alteração de documentos. Nunca fazer cadastro automatizado, seed, drop ou limpeza nele. Testes são executados por `scripts/test-auth.sh`, com MongoDB temporário em tmpfs e envs explicitamente sobrescritas. O helper de integração recusa URI diferente do formato local descartável.
 
@@ -70,8 +71,14 @@ Servidor de desenvolvimento iniciado em http://localhost:3000 nesta sessão; ver
 
 ## Próxima etapa
 
-Fase 4: criação/gerenciamento de grupos, pesquisa e inclusão direta de membros, transferência de administração e dashboard. Não iniciar automaticamente após esta entrega: o usuário pediu avanço por etapas. A Fase 3 e os respectivos commits/push foram autorizados.
+Fase 5: compartilhamento de listas com autorização contextual e reservas privadas por grupo/edição. Não iniciar automaticamente após esta entrega: o usuário pediu avanço por etapas. A Fase 4 e os respectivos commits/push foram autorizados.
 
-Pendências das fases seguintes: mínimo de participantes, encerramento do grupo pelo último membro, edição de perfil e exclusão de conta/retenção. Senha/sessão e ausência de email/recuperação já estão definidos, não perguntar novamente.
+Pendências das fases seguintes: mínimo de participantes para sorteio, edição de perfil e exclusão de conta/retenção. Último administrador pode encerrar com confirmação, sem sorteio ativo; regra já confirmada pelo usuário. Senha/sessão e ausência de email/recuperação já estão definidos, não perguntar novamente.
 
-Commits de referência da Fase 1: `f832e7e`, `8c76bc9`, `35edd6a`, `c4772ae` e `1d68a8b`; backend de auth: `a9b2025`; base da lista pessoal: `87ff062`. Consulte `git log`/`git status` para histórico e estado atuais.
+Commits de referência da Fase 1: `f832e7e`, `8c76bc9`, `35edd6a`, `c4772ae` e `1d68a8b`; backend de auth: `a9b2025`; base da lista pessoal: `87ff062`; backend de grupos: `03d881e`. Consulte `git log`/`git status` para histórico e estado atuais.
+
+## Grupos: garantias atuais
+
+Participações separadas, unicidade groupId/userId e contagem de membros atualizada na mesma transação. Toda mutação escreve o grupo (writeVersion), relê permissões e preserva um único administrador participante. membershipVersion muda só com composição; transferência preserva sorteio/composição. Sorteio ativo bloqueia adicionar/remover/sair/encerrar, inclusive no backend, mas permite transferência. O algoritmo/invalidação real pertence à Fase 6. Tipo do grupo é imutável nesta versão.
+
+Pesquisa pelo início do nome (case-insensitive, literal), apenas para admin adicionar; retorna id/nome e exclui membros atuais. Grupos/membros têm páginas de 24; candidatos de 20. Fixture E2E limpa somente contadores rateLimit do banco descartável entre testes, sem desabilitar proteção da aplicação.

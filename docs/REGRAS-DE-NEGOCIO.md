@@ -1,6 +1,6 @@
 # Complemento definitivo — privacidade, reservas e sorteios
 
-Recebido em 05/11/2026. Este documento prevalece sobre propostas conflitantes do planejamento inicial. Não amplia o escopo da entrega atual além de documentação e estrutura da Fase 1.
+Recebido em 05/11/2026. Este documento prevalece sobre propostas conflitantes do planejamento inicial. As regras acompanham a implementação incremental das fases autorizadas.
 
 ## Autorização contextual
 
@@ -45,7 +45,7 @@ Transações escrevem o mesmo documento de coordenação do grupo e verificam ve
 
 ## Administração
 
-Criador é membro e administrador inicial. Exatamente um administrador ativo em grupo existente. Somente ele adiciona/remove membros, edita grupo, transfere administração e inicia/refaz/invalida sorteio. Transferir valida que destinatário é membro atual e altera adminId atomicamente. Antigo administrador perde poderes imediatamente; requisições subsequentes validam o admin atual, sem usar papel persistido na sessão. Grupo com outros participantes nunca pode ficar sem administrador. Saída do administrador exige transferência prévia, além da restrição de sorteio ativo. Último membro ainda depende da regra de encerramento a confirmar.
+Criador é membro e administrador inicial. Exatamente um administrador ativo em grupo existente. Somente ele adiciona/remove membros, edita grupo, transfere administração e inicia/refaz/invalida sorteio. Transferir valida que destinatário é membro atual e altera adminId atomicamente. Antigo administrador perde poderes imediatamente; requisições subsequentes validam o admin atual, sem usar papel persistido na sessão. Grupo com outros participantes nunca pode ficar sem administrador. Saída do administrador exige transferência prévia, além da restrição de sorteio ativo. O último administrador pode encerrar o grupo com confirmação se não houver sorteio ativo; usuários e listas pessoais são preservados.
 
 ## Matriz de testes adicionais obrigatórios
 
@@ -70,3 +70,7 @@ Testes HTTP/DTO verificam ausência de campos confidenciais; integração MongoD
 ## Definição complementar da Fase 3
 
 A URL da imagem do presente é opcional, conforme instrução explícita do usuário. Quando ausente/em branco, usar uma ilustração local padrão; quando informada, validar HTTP/HTTPS e rejeitar esquemas inseguros e credenciais embutidas. Falha de carregamento também mostra a ilustração. Nome, descrição e link do produto continuam obrigatórios. O banco guarda imageUrl vazio quando não fornecido, sem vincular o registro ao domínio da aplicação.
+
+## Definições da Fase 4
+
+O usuário confirmou que o último administrador pode encerrar o grupo com confirmação, sem sorteio ativo. Com outros membros, deve transferir a administração antes de sair. Nome e descrição são editáveis; o tipo permanece o definido na criação nesta versão. Pesquisa/inclusão administrativa usa perfis mínimos (id/nome), sem convite/aceite ou email público.
