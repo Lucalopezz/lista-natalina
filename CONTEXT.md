@@ -23,6 +23,7 @@ O perfil ai-memory contribui com preferências de comunicação, conforme a orig
 - Zod para validar ambiente privado, usando o nome existente `DATABASE_URL`; `DATABASE_NAME` opcional. Sem nome explícito, o driver usa o da URI ou seu padrão: confirmar banco antes de escrever.
 - Driver oficial MongoDB em módulo server-only; conexão lazy, promessa global por instância, pool máximo 10, conexão inicial descartada após falha para permitir nova tentativa.
 - Vitest, ESLint e scripts de typecheck/build; workflow GitHub Actions configurado com pnpm e Node.js 24.
+- Ícone natalino em SVG, favicon ICO, ícone Apple e PNGs 192/512 com manifest. Fonte em src/app/icon.svg; geração de derivados em scripts/generate-icons.mjs.
 - O README e docs explicam configuração local e preparação para Vercel. Nenhuma publicação foi feita.
 
 ## Mapa do código

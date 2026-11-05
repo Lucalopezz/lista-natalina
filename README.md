@@ -60,6 +60,10 @@ Server Components são o padrão. Formulários usam o handler HTTP para manter c
 
 Estilos usam Tailwind CSS. Tokens da paleta natalina estão em `src/app/globals.css`; estilos de componentes e responsividade ficam nos utilitários do JSX. Sem biblioteca extra de formulários ou estado global.
 
+## Ícone da aplicação
+
+Fonte vetorial: `src/app/icon.svg`, com presente nas cores natalinas. Next.js registra favicon e ícone Apple automaticamente; `manifest.ts` oferece ícones de tela inicial em 192 e 512 px. Para atualizar os PNGs e o ICO após editar o SVG: `node scripts/generate-icons.mjs` (reutiliza sharp já incluído pelo Next.js). Isso não adiciona suporte offline.
+
 ## Vercel e CI
 
 Projeto único Next.js/Node.js 24, sem processos permanentes ou armazenamento local persistente. Build `pnpm build`, instalação `pnpm install --frozen-lockfile`, saída padrão do Next.js. Configurar envs privadas por ambiente, origem HTTPS exata e segredo próprio. Não compartilhar URI de produção com previews automaticamente. Deploy ainda não realizado.
