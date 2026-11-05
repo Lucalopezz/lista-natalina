@@ -8,7 +8,7 @@ export default defineConfig({
     exclude: process.env.INTEGRATION_DATABASE_URL ? [] : ["**/*.integration.test.ts"],
     coverage: {
       provider: "v8",
-      include: ["src/lib/**/*.ts"],
+      include: ["src/lib/**/*.ts", "src/modules/**/*.ts"],
       exclude: ["src/**/*.test.ts"],
     },
   },

@@ -31,11 +31,11 @@ Operações privadas não terão cache compartilhado. Server Actions validam ide
 | Validação | Zod | Schemas reutilizáveis; erros públicos sanitizados |
 | Autenticação (Fase 2) | Better Auth, adapter MongoDB | Email/senha, sessões persistidas e hash seguro mantidos pela biblioteca; confirmar versão e integração no início da fase |
 | Testes | Vitest; integração MongoDB isolada | Unidade rápida e verificação de índices/transações reais; adicionar Testing Library e Playwright nas fases com formulários e fluxos completos |
-| Interface | CSS e HTML semânticos inicialmente | Sem kit pesado para tela inicial; Radix/shadcn apenas para diálogos e componentes que precisem de comportamento acessível |
+| Interface | Tailwind CSS e HTML semântico | Preferência explícita do usuário; tokens natalinos compartilhados, sem kit pesado |
 | Formulários | Formulários nativos + Server Actions + Zod | Evita biblioteca adicional no início; React Hook Form somente se a complexidade justificar |
 | Estado | Estado local React e servidor | Sem Redux/Zustand/TanStack Query até existir necessidade concreta |
 
-Better Auth será configurado na Fase 2 com senha forte (proposta: 12–128 caracteres), hashing da biblioteca (scrypt conforme configuração/documentação da versão), cookies HttpOnly/Secure em produção/SameSite, expiração e revogação de sessões. Não implementar criptografia ou sessões caseiras. Validar origem/CSRF, limitar tentativas com mecanismo persistido adequado a múltiplas instâncias e responder a login inválido sem revelar existência de conta. Definir necessidade de verificação de email/recuperação antes de publicar cadastro público. Não instalar provedor de email nesta fase.
+Better Auth foi integrado na Fase 2 com senha de **6–128 caracteres**, conforme definição explícita do usuário, hash scrypt da biblioteca, sessão persistida de **7 dias**, cookies HttpOnly/SameSite=Lax e Secure em HTTPS. Não haverá confirmação de email nem recuperação de senha neste projeto. Endpoints fora desse escopo são bloqueados. Formulários usam Route Handlers para preservar cookies e rate limiting da biblioteca; não há Server Action de autenticação paralela.
 
 ## Modelagem MongoDB proposta
 
@@ -78,7 +78,7 @@ As regras definitivas e a matriz de testes estão em [REGRAS-DE-NEGOCIO.md](REGR
 - Composição de amigo secreto fica bloqueada durante sorteio ativo, inclusive adições. Somente administrador invalida explicitamente antes de alterar membros.
 - Grupo tem exatamente um administrador, que só transfere para membro atual. Transferência não altera sorteio e não contorna bloqueio de saída.
 
-Pendências restantes (não implementar sem definir): mínimo de participantes (proposta: três), tratamento do último membro/administrador (proposta: exclusão confirmada do grupo), exclusão de conta/retencão de histórico, edição do perfil, recuperação/verificação de email e política final de sessões/senha. Busca autenticada mínima por id/nome; email privado. Proposta de URLs apenas HTTP/HTTPS sem proxy de imagens; descrição em texto simples.
+Pendências restantes (não implementar sem definir): mínimo de participantes (proposta: três), tratamento do último membro/administrador (proposta: exclusão confirmada do grupo), exclusão de conta/retencão de histórico, edição do perfil, política de edição do perfil. Busca autenticada mínima por id/nome; email privado. Proposta de URLs apenas HTTP/HTTPS sem proxy de imagens; descrição em texto simples.
 
 ## Plano incremental e critérios de aceite
 
@@ -97,7 +97,7 @@ Autenticação fica recomendada, mas ainda não implementada. Não criar schemas
 
 ### Fase 2 — Autenticação e usuários
 
-Confirmar política de email, sessão e senha. TDD de cadastro válido/inválido, email duplicado normalizado, credenciais inválidas, sessão expirada/revogada, acesso anônimo e projeções sem segredos. Integrar Better Auth e índices. Telas cadastro/login/logout/perfil, proteção no servidor e feedback acessível. Testar fluxo HTTP real e cookies; não confiar só no mock da biblioteca.
+Política confirmada pelo usuário: senha de 6–128 caracteres, sessão de 7 dias, sem confirmação nem recuperação de email. TDD de cadastro válido/inválido, email duplicado normalizado, credenciais inválidas, sessão expirada/revogada, acesso anônimo e projeções sem segredos. Integrar Better Auth e índices. Telas cadastro/login/logout/perfil, proteção no servidor e feedback acessível. Testar fluxo HTTP real e cookies; não confiar só no mock da biblioteca.
 
 ### Fase 3 — Lista pessoal
 
@@ -117,7 +117,7 @@ Aprovar mínimo de pessoas; aplicar invalidação explícita e novo sorteio com 
 
 ### Fase 7 — Finalização e preparação de deploy
 
-Revisar IDOR, DTOs, sessões, XSS, CSRF, URLs, logs e rate limiting distribuído. E2E com múltiplas sessões no navegador para cadastro→grupo→reserva→sorteio. Revisar teclado, foco, contraste, touch e tamanhos mobile/desktop. Rodar testes, lint, typecheck e build. Documentar variáveis Vercel, região próxima ao Atlas, rede/TLS, pools e orçamento. Separar bancos development/preview/production; preview nunca aponta para produção por padrão. Deploy/publicação será uma etapa explícita posterior.
+Revisar IDOR, DTOs, sessões, XSS, CSRF, URLs, logs e rate limiting distribuído. E2E com múltiplas sessões no navegador para cadastro→grupo→reserva→sorteio. Revisar teclado, foco, contraste, touch e tamanhos mobile/desktop. Rodar testes, lint, typecheck e build. Documentar variáveis Vercel, região próxima ao Atlas, rede/TLS, pools e orçamento. O usuário definiu o banco existente como produção. Testes sempre usam MongoDB descartável; previews de deploy ainda precisam de banco separado e não devem receber a URI de produção automaticamente. Deploy/publicação será uma etapa explícita posterior.
 
 ## TDD, Git e validação
 
@@ -129,7 +129,7 @@ Cada entrega informa resultado, arquivos principais com links, testes e limitaç
 
 ## Estado da Fase 1
 
-Base implementada e validada com pnpm; ver [FASE-1.md](FASE-1.md). Conexão real com o MongoDB pendente: o servidor recusou autenticação (código 8000). Nenhum dado ou credencial foi alterado. As demais fases ainda não foram iniciadas.
+Base implementada e validada com pnpm; ver [FASE-1.md](FASE-1.md). A pendência inicial de autenticação do MongoDB foi resolvida pelo usuário na Fase 2; ping e topologia transacional confirmados. Nenhum dado ou credencial foi alterado. Fase 2 implementada; consulte [FASE-2.md](FASE-2.md). Fases 3–7 ainda não iniciadas.
 
 ## Referências oficiais consultadas
 

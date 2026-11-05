@@ -17,8 +17,8 @@ O perfil ai-memory contribui com preferências de comunicação, conforme a orig
 
 ## Estado implementado
 
-- Fase 1: base técnica criada. Fases 2–7 ainda não iniciadas.
-- Next.js 16.4.5, React 19.3.1 e TypeScript estrito; página pública inicial em português, sem ações falsas de cadastro/grupos.
+- Fases 1 e 2 implementadas. Fases 3–7 ainda não iniciadas. Consulte [FASE-2.md](docs/FASE-2.md) para autenticação, ambiente e testes.
+- Next.js 16.4.5, React 19.3.1 e TypeScript estrito; página pública, cadastro, entrada, dashboard inicial e perfil próprio; Tailwind CSS com paleta natalina.
 - pnpm 12.11.2 em packageManager, pnpm-lock.yaml versionado e Node.js 24 como alvo. Instalação npm anterior removida; manter package.json.
 - Zod para validar ambiente privado, usando o nome existente `DATABASE_URL`; `DATABASE_NAME` opcional. Sem nome explícito, o driver usa o da URI ou seu padrão: confirmar banco antes de escrever.
 - Driver oficial MongoDB em módulo server-only; conexão lazy, promessa global por instância, pool máximo 10, conexão inicial descartada após falha para permitir nova tentativa.
@@ -37,7 +37,7 @@ O perfil ai-memory contribui com preferências de comunicação, conforme a orig
 | `.github/workflows/validacao.yml` | Instalação reproduzível e verificação no CI |
 | `src/modules` (futuro) | auth, users, gifts, groups, reservations, secret-santa, criados conforme cada fase |
 
-Auth recomendada: Better Auth com adapter MongoDB, ainda não instalado/integrado. Não há cadastro, login, CRUD, reservas, serviços de domínio nem índices de negócio implementados.
+Better Auth 1.7.17 com adapter MongoDB implementado. Senha de 6–128 caracteres, sessão de 7 dias, sem confirmação de email nem recuperação de senha (decisões explícitas do usuário). Há cadastro/login/logout/perfil e índices de auth. Presentes, grupos, reservas e sorteios ainda não implementados.
 
 ## Invariantes de negócio
 
@@ -55,18 +55,20 @@ Auth recomendada: Better Auth com adapter MongoDB, ainda não instalado/integrad
 
 A implementação deve seguir os detalhes e a matriz de testes do complemento definitivo, incluindo coordenação transacional para evitar reservas sobrevivendo à invalidação concorrente.
 
-## Verificações e pendências conhecidas
+## Verificações e ambiente
 
-Na Fase 1, `pnpm check` passou: lint, TypeScript, 12 testes e build de produção. Instalação com frozen lockfile e smoke HTTP 200 também passaram. Não houve avaliação visual em navegador nem execução remota de CI, pois não houve push.
+Fase 2: 36 testes isolados, 14 de integração HTTP com MongoDB descartável e dois E2E Playwright (desktop/celular) aprovados; lint, TypeScript e build também. Capturas de cadastro/perfil revisadas. `pnpm audit --prod` não encontrou vulnerabilidades conhecidas. Auditorias são retratos do momento, revalidar quando necessário.
 
-`pnpm audit --prod` não encontrou vulnerabilidades conhecidas. Auditoria completa apontou um aviso moderado de minimatch na cadeia de lint; revalidar em futuras atualizações, sem supor que continua atual.
+O usuário corrigiu a conexão e definiu o banco do `.env` como **produção**. Ping e topologia transacional confirmados sem alteração de documentos. Nunca fazer cadastro automatizado, seed, drop ou limpeza nele. Testes são executados por `scripts/test-auth.sh`, com MongoDB temporário em tmpfs e envs explicitamente sobrescritas. O helper de integração recusa URI diferente do formato local descartável.
 
-**Conexão real pendente:** MongoDB retornou código 8000 com indicação de falha de autenticação. `.env` preservado; nenhuma credencial ou documento exposto/alterado. Corrigir a configuração da conexão antes das funcionalidades persistentes. Topologia/transações não puderam ser confirmadas sem autenticação. Mocks não comprovam persistência real.
+`.env.local` foi preparado com segredo privado local e origem http://localhost:3000, sem exibir valores; `.env` permanece preservado. A aplicação local conectada a esse banco cria contas reais quando o usuário se cadastra manualmente. Primeira inicialização funcional de auth prepara índices idempotentes. A verificação de conexão feita nesta etapa não criou índices.
 
-Decisões ainda pendentes: mínimo de participantes (proposta: três), encerramento do grupo pelo último membro, políticas finais de senha/sessão, verificação/recuperação de email, edição de perfil e exclusão de conta/retenção. Não confundir propostas com aprovação.
+Servidor de desenvolvimento iniciado em http://localhost:3000 nesta sessão; verificar se continua rodando antes de prometer disponibilidade futura. Testes E2E usam outro servidor e banco. Deploy Vercel ainda não realizado. Na Vercel, configurar origem HTTPS exata e segredo próprio; previews exigem banco separado.
 
-## Próxima etapa autorizável
+## Próxima etapa
 
-Fase 2: cadastro, login, logout, sessão, perfil e proteção no servidor, depois de resolver conexão e políticas essenciais. O usuário pediu concluir a primeira etapa e voltar antes de avançar; não iniciar a Fase 2 automaticamente.
+Fase 3: CRUD da lista pessoal, cards e URLs validadas/autorizadas. Ainda não iniciar sem a próxima etapa solicitada pelo usuário. Ele autorizou o push dos commits desta entrega e a Fase 2, já executada.
 
-Commits de referência da Fase 1: `f832e7e` (plano), `8c76bc9` (regras definitivas), `35edd6a` (base com pnpm), `c4772ae` (relatório e documentação). Use `git log` e `git status` para estado atual, sem transformar esta lista em histórico exaustivo.
+Pendências das fases seguintes: mínimo de participantes, encerramento do grupo pelo último membro, edição de perfil e exclusão de conta/retenção. Senha/sessão e ausência de email/recuperação já estão definidos, não perguntar novamente.
+
+Commits de referência da Fase 1: `f832e7e`, `8c76bc9`, `35edd6a`, `c4772ae` e `1d68a8b`; backend de auth: `a9b2025`. Consulte `git log`/`git status` para histórico e estado atuais.

@@ -44,6 +44,7 @@ Exemplo do nível de explicação esperado para uma futura operação de reserva
 ## Arquitetura e segurança
 
 - Stack: Next.js App Router, TypeScript estrito, MongoDB; frontend e backend no mesmo projeto, compatíveis com Vercel.
+- Estilize com Tailwind CSS. Mantenha em `globals.css` apenas importação, tokens do tema e estilos base; evite classes globais de layout/componentes. Use verde pinheiro, vermelho natalino e detalhes dourados, preservando contraste e legibilidade.
 - Use Server Components por padrão; Client Components somente quando houver interatividade necessária.
 - Separe apresentação, validação, serviços/regras, persistência e autorização. Crie módulos em `src/modules` conforme a funcionalidade; evite abstrações e dependências sem benefício concreto.
 - Valide identidade no servidor em toda operação privada. Use usuário da sessão, nunca identidade enviada pelo cliente como fonte de autoridade.
@@ -51,7 +52,7 @@ Exemplo do nível de explicação esperado para uma futura operação de reserva
 - Nunca exponha reservas ao dono do presente nem resultados alheios ao administrador. Retorne DTOs explícitos, sem documentos completos ou cache compartilhado de dados privados.
 - Use runtime Node.js para MongoDB, conexão reutilizável e transações para consistência entre documentos relacionados.
 - Não introduza regras pendentes como se já estivessem aprovadas. Consulte as pendências do plano antes da respectiva fase.
-- Preserve `.env`; não imprimir, versionar ou copiar credenciais para documentação. Nunca usar o banco existente para testes destrutivos, limpeza ou seed.
+- O banco de `.env` é de produção, conforme definição do usuário. Preserve `.env`; não imprimir, versionar ou copiar credenciais para documentação. Nunca usar o banco existente para testes destrutivos, limpeza ou seed.
 
 ## Dependências e comandos
 
@@ -75,10 +76,20 @@ Exemplo do nível de explicação esperado para uma futura operação de reserva
 - Faça commits pequenos por unidade funcional, usando Conventional Commits: `feat`, `fix`, `test`, `refactor`, `docs`, `chore` etc.
 - O título deve explicar a mudança concreta. Evite juntar alterações independentes ou criar commits que afirmem entregar funcionalidade ainda ausente.
 - Revise diff e arquivos preparados, preservando alterações não relacionadas. Nunca versionar `.env`, node_modules, builds, cobertura ou segredos.
-- Não faça push ou deploy automaticamente: o escopo atual autoriza commits locais incrementais; publicação será uma etapa explícita.
+- O usuário autorizou o push dos commits e a execução da Fase 2 nesta sessão. Faça push dos commits dessa entrega após validar; deploy/publicação da aplicação continua fora do escopo. Em novas tarefas, siga o escopo autorizado pelo usuário.
 - Ao encerrar uma fase, atualize o contexto quando o estado, as decisões ou as pendências tiverem mudado. Não registre sucesso sem a verificação correspondente.
 
 ## Origem das preferências
 
-- Solicitações diretas desta conversa: TDD, commits incrementais Conventional Commits, pnpm para economizar espaço, comentários detalhados e explicações da lógica para estudo.
+- Solicitações diretas desta conversa: TDD, commits incrementais Conventional Commits, pnpm para economizar espaço, comentários detalhados e explicações da lógica para estudo, Tailwind CSS e cores natalinas. Autenticação: senha de 6–128 caracteres, sessão de 7 dias, sem confirmação de email nem recuperação de senha. Banco existente é produção; todos os testes de escrita devem usar banco descartável separado.
 - Perfil global consultado em 05/11/2026: `default/_global`, página `profile/communication/entrega-de-funcionalidades.md`, lida integralmente por `ai-memory profile show communication/entrega-de-funcionalidades.md`. Aplicamos a preferência de entrega por resultado, arquivos com links, decisões, testes e limitações. Referências específicas a Go/Bruno foram omitidas por não serem aplicáveis a este projeto.
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+## This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->

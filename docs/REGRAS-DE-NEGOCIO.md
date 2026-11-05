@@ -60,3 +60,9 @@ Estes testes serão escritos antes da implementação dos comportamentos nas Fas
 | Administração / 4 | Admin não sai sem transferir; destinatário precisa ser membro; novo admin ganha poderes e anterior perde; transferência preserva sorteio; antigo admin continua sujeito ao bloqueio de saída com sorteio ativo; grupo nunca fica com membros e sem admin |
 
 Testes HTTP/DTO verificam ausência de campos confidenciais; integração MongoDB isolada verifica índices parciais, transações e requisições concorrentes. Os cenários originais de cadastro/presentes/sorteios continuam obrigatórios.
+
+## Definições complementares da Fase 2
+
+- Senha: 6 a 128 caracteres. Sessão: 7 dias. Sem confirmação de email nem recuperação de senha, por decisão explícita do usuário.
+- Banco do `.env` é produção. Testes de escrita, cadastros automatizados e exclusão/limpeza só podem ocorrer no MongoDB descartável criado pelo runner.
+- Interface: Tailwind CSS e paleta natalina (verde pinheiro, vermelho, dourado e creme).

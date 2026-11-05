@@ -1,35 +1,39 @@
 # Lista Natalina
 
-Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeScript e MongoDB. A Fase 1 entrega a estrutura técnica; cadastro, listas, grupos, reservas e sorteios serão implementados nas próximas etapas.
+Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeScript, MongoDB e Tailwind CSS. Já estão implementados cadastro, entrada, logout, sessão e perfil próprio. Presentes, grupos, reservas e sorteios serão entregues nas próximas fases.
 
 ## Documentação
 
 - [Instruções de trabalho e preferências](AGENTS.md)
-- [Contexto central e estado atual](CONTEXT.md)
-
-- [Plano completo, arquitetura, modelagem e fases](docs/PLANO.md)
-- [Regras definitivas e testes adicionais](docs/REGRAS-DE-NEGOCIO.md)
-- [Resultado e validação da Fase 1](docs/FASE-1.md)
+- [Contexto central](CONTEXT.md)
+- [Plano completo e modelagem](docs/PLANO.md)
+- [Regras definitivas de negócio](docs/REGRAS-DE-NEGOCIO.md)
+- [Fase 1: estrutura](docs/FASE-1.md)
+- [Fase 2: autenticação, contrato HTTP e testes](docs/FASE-2.md)
 
 ## Desenvolvimento
 
-Use Node.js 24 (`nvm use`) e pnpm. O lockfile é versionado.
+Node.js 24 (`nvm use`), pnpm 12.11.2 fixado em packageManager e lockfile versionado.
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Abra http://localhost:3000. A página inicial é uma apresentação; ainda não há autenticação ou operações de domínio.
+Abra http://localhost:3000. Rotas: `/`, `/cadastro`, `/entrar`, `/dashboard` e `/perfil`. Dashboard/perfil exigem sessão validada no servidor. Senha de 6–128 caracteres; sessão de 7 dias; sem confirmação de email nem recuperação de senha.
 
-O `.env` existente é preservado e ignorado pelo Git. Em um checkout novo, crie seu arquivo local a partir de `.env.example` e configure a URI real sem versioná-la. Nunca substitua um `.env` existente automaticamente.
+Preserve arquivos locais existentes. Em novo checkout, use `.env.example` como referência e configure arquivos privados sem versioná-los. `.env` e `.env.local` estão ignorados pelo Git. O banco existente é de **produção**, conforme decisão do usuário: não usar para dados automatizados de teste, seed ou limpeza. Cadastros manuais no servidor local conectado a ele criam contas reais.
 
 | Variável privada | Uso |
 | --- | --- |
-| `DATABASE_URL` | URI MongoDB existente, obrigatória ao acessar o banco |
-| `DATABASE_NAME` | Opcional; substitui o banco da URI. Sem ela, vale o banco da URI ou o padrão do driver; informe o banco explicitamente antes das funcionalidades de escrita |
+| `DATABASE_URL` | URI MongoDB, com banco explícito preferencialmente e suporte a transações |
+| `DATABASE_NAME` | Opcional; substitui o banco da URI. Informe o banco explicitamente antes das escritas |
+| `BETTER_AUTH_SECRET` | Segredo aleatório de pelo menos 32 caracteres; nunca exibir ou versionar |
+| `BETTER_AUTH_URL` | Origem exata: http://localhost:3000 localmente, HTTPS em produção |
 
-A aplicação lê variáveis apenas no servidor. O build e a página inicial não dependem da conexão com o banco. O módulo `server-only` impede importação da persistência em Client Components.
+As variáveis são lidas somente no servidor. Build não exige conexão ao banco. Auth prepara índices de forma idempotente na primeira inicialização, antes de aceitar escritas. Precisa de permissões para índices e transações. Dados duplicados existentes não são removidos automaticamente.
+
+## Verificação
 
 ```sh
 pnpm test                 # Unidade, sem banco real
@@ -38,22 +42,28 @@ pnpm test:coverage
 pnpm lint
 pnpm typecheck
 pnpm build
-pnpm check            # Todas as verificações acima, sem cobertura
-pnpm db:check         # Diagnóstico explícito usando .env
+pnpm check                # Lint + tipos + unidade + build
+pnpm db:check             # Ping/topologia, somente leitura, usando .env
+pnpm test:integration     # MongoDB novo, isolado, em memória (Docker)
+pnpm test:e2e             # Build e navegador com outro MongoDB descartável
 ```
 
-`db:check` executa somente ping e consulta de topologia, fecha a conexão e não imprime URI, hosts, credenciais ou documentos. Retorna erro se a conexão falhar ou a topologia não suportar transações. Não cria coleções, índices nem dados. Não é teste de integração dos futuros serviços. O comando usa `tsx` com a condição `react-server` para respeitar o marcador server-only fora do Next.js.
+Os runners de integração/E2E não usam o banco do `.env`: criam containers com tmpfs e portas aleatórias, sobrescrevem as variáveis no processo de teste e limpam somente recursos próprios. Reutilizam a imagem `mongo:8.0` quando já disponível. E2E usa Chromium local quando instalado; caso contrário, `pnpm exec playwright install chromium`. Capturas e traces ficam em `test-results`, ignorado pelo Git.
 
-## Organização
+`db:check` consulta ping/topologia, fecha a conexão e não imprime URI, hosts, credenciais ou documentos; não cria coleções/índices/dados. Verificação de topologia não substitui testes de transações reais.
 
-`src/app` contém apresentação e adaptadores do Next.js; `src/lib/env` valida configurações; `src/lib/db` gerencia o pool MongoDB. Testes ficam junto dos módulos. Os módulos `auth`, `users`, `gifts`, `groups`, `reservations` e `secret-santa` serão criados em `src/modules` conforme cada fase — sem implementações vazias.
+## Organização e interface
 
-Server Components são o padrão. Regras de negócio irão para serviços, separados dos repositórios e da interface. Todo acesso a lista de terceiro/reserva usará o contexto explícito do grupo, conforme o complemento definitivo. Reservas e atribuições secretas nunca serão expostas ao proprietário/terceiros indevidos.
+`src/app`: páginas/layouts/Route Handlers. `src/modules/auth`: validação, configuração Better Auth, índices, adaptador HTTP, sessão e formulários. `src/lib/db`: pool MongoDB reutilizável e server-only. Testes junto dos módulos. Novos módulos serão adicionados conforme cada fase, sem implementações vazias.
 
-## Vercel
+Server Components são o padrão. Formulários usam o handler HTTP para manter cookies e rate limiting da biblioteca. Regras de domínio não pertencem aos componentes React. Listas alheias/reservas futuras sempre exigirão contexto explícito do grupo.
 
-Projeto único Next.js, runtime Node.js, sem processos permanentes ou armazenamento local persistente. Selecionar Node.js 24 no projeto; comando de build `pnpm build`, instalação `pnpm install --frozen-lockfile`, saída padrão do Next.js. Não foi realizado deploy nesta fase.
+Estilos usam Tailwind CSS. Tokens da paleta natalina estão em `src/app/globals.css`; estilos de componentes e responsividade ficam nos utilitários do JSX. Sem biblioteca extra de formulários ou estado global.
 
-Configurar variáveis privadas no painel por ambiente e usar bancos separados para development, preview e production. Aproximar região das Functions e MongoDB. Restringir acesso de rede e usar TLS conforme o provedor; não abrir rede indiscriminadamente para contornar falhas. Reutilização de conexão acontece por instância, sem garantia de pool global entre Functions; dimensionar limite de conexões do Atlas conforme concorrência. Sorteios e operações relacionadas exigirão replica set/Atlas com transações. Variáveis Better Auth e política de sessão serão incluídas na Fase 2.
+## Vercel e CI
 
-CI executa lint, TypeScript, testes e build sem credenciais. Testes de integração e E2E serão adicionados com as funcionalidades, usando exclusivamente banco descartável separado.
+Projeto único Next.js/Node.js 24, sem processos permanentes ou armazenamento local persistente. Build `pnpm build`, instalação `pnpm install --frozen-lockfile`, saída padrão do Next.js. Configurar envs privadas por ambiente, origem HTTPS exata e segredo próprio. Não compartilhar URI de produção com previews automaticamente. Deploy ainda não realizado.
+
+Mantenha Functions próximas ao MongoDB; use TLS e permissões/rede restritas. Pool máximo 10 por instância, timeout total de operações 10 segundos. Não existe um único pool compartilhado por todas as Functions; dimensionar conexões do Atlas conforme concorrência.
+
+GitHub Actions roda lint, tipos, unidade, build, integração e E2E em bancos descartáveis, sem credenciais de produção. O pnpm-workspace.yaml autoriza esbuild e registra uma exceção de idade para a versão exata de Vite já resolvida; não desabilita a política global de dependências.
