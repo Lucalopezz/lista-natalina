@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test("cadastro → perfil → logout → login, com proteção e erros", async ({ page }) => {
   const email = `browser-${Date.now()}@example.test`;

@@ -47,7 +47,7 @@ elif [ "$mode" = e2e ]; then
     sleep 1
   done
   if command -v chromium >/dev/null; then export PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH="$(command -v chromium)"; fi
-  E2E_BASE_URL="$test_origin" pnpm exec playwright test
+  E2E_BASE_URL="$test_origin" E2E_DATABASE_URL="$test_uri" pnpm exec playwright test "${@:2}"
 else
   echo "Modo de teste desconhecido." >&2
   exit 1
