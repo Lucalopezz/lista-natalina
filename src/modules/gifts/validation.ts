@@ -13,7 +13,10 @@ export const giftInputSchema = z.object({
   name: z.string().trim().min(1, "Informe o nome do presente.").max(120, "Use até 120 caracteres."),
   description: z.string().trim().min(1, "Descreva o presente.").max(2000, "Use até 2000 caracteres."),
   productUrl: webUrl,
-  imageUrl: webUrl,
+  imageUrl: z.preprocess(
+    (value) => value == null ? "" : typeof value === "string" ? value.trim() : value,
+    z.union([z.literal(""), webUrl]),
+  ),
 });
 export const giftIdSchema = z.string().regex(/^[a-f\d]{24}$/i, "Presente inválido.").transform((id) => id.toLowerCase());
 export const giftQuerySchema = z.object({ cursor: giftIdSchema.optional() });

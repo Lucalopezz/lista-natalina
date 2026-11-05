@@ -14,10 +14,16 @@ describe("validação dos presentes", () => {
     expect(giftInputSchema.safeParse({ ...input, productUrl: url }).success).toBe(false);
     expect(giftInputSchema.safeParse({ ...input, imageUrl: url }).success).toBe(false);
   });
+  it("aceita imagem ausente ou vazia, mantendo o campo como string vazia", () => {
+    const { imageUrl: _image, ...withoutImage } = input;
+    void _image;
+    expect(giftInputSchema.parse(withoutImage).imageUrl).toBe("");
+    expect(giftInputSchema.parse({ ...input, imageUrl: "  " }).imageUrl).toBe("");
+  });
   it("aceita HTTP/HTTPS sem buscar o conteúdo da URL", () => {
     expect(giftInputSchema.safeParse({ ...input, productUrl: "http://example.test/a" }).success).toBe(true);
   });
-  it.each(["name", "description", "productUrl", "imageUrl"])("exige %s", (field) => {
+  it.each(["name", "description", "productUrl"])("exige %s", (field) => {
     expect(giftInputSchema.safeParse({ ...input, [field]: "  " }).success).toBe(false);
   });
   it("limita campos por tamanho, sem limitar quantidade de presentes", () => {

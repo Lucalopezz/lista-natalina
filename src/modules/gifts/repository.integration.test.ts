@@ -76,6 +76,12 @@ describe("persistência e autorização dos presentes", () => {
     expect(new Set(ids).size).toBe(50);
     expect(ids).not.toContain(foreign.id);
   });
+  it("persiste imagem vazia sem vincular dados a uma URL de hospedagem", async () => {
+    const gift = await service.create(owner, { ...input, imageUrl: "" });
+    expect((await service.get(owner, gift.id)).imageUrl).toBe("");
+    const raw = await db.collection("gifts").findOne({ _id: new ObjectId(gift.id) });
+    expect(raw?.imageUrl).toBe("");
+  });
   it("usa índice compatível com filtro de dono e paginação", async () => {
     const indexes = await db.collection("gifts").indexes();
     expect(indexes.some((index) => index.key.ownerId === 1 && index.key._id === -1)).toBe(true);

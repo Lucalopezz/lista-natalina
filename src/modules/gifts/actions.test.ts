@@ -46,6 +46,11 @@ describe("Server Actions de presentes", () => {
     expect(mocks.revalidate).toHaveBeenCalledWith("/presentes");
     expect(mocks.redirect).toHaveBeenCalledWith("/presentes?status=criado");
   });
+  it("aceita formulário sem imagem", async () => {
+    const data = form(); data.delete("imageUrl");
+    await expect(createGiftAction(empty, data)).rejects.toThrow("NEXT_REDIRECT");
+    expect(mocks.create).toHaveBeenCalledWith(owner, expect.objectContaining({ imageUrl: "" }));
+  });
   it("não engole o redirecionamento depois de editar", async () => {
     await expect(updateGiftAction(id, empty, form())).rejects.toThrow("NEXT_REDIRECT");
     expect(mocks.update).toHaveBeenCalledWith(owner, id, expect.any(Object));
