@@ -32,7 +32,7 @@ export function GroupForm({ group }: { group?: GroupView }) {
             </label>
           ))}
           {state.fields?.type && <p id="group-type-error" className="text-error">{state.fields.type[0]}</p>}
-          <p className="text-base leading-relaxed text-muted">Por enquanto, você pode criar grupos e adicionar pessoas. As listas compartilhadas e o sorteio serão disponibilizados nas próximas etapas.</p>
+          <p className="text-base leading-relaxed text-muted">Por enquanto, você pode criar grupos e adicionar pessoas. As listas já podem ser acessadas nos grupos sem sorteio. O sorteio de amigo secreto ainda não está disponível.</p>
         </fieldset>
       )}
       <div className="grid gap-2">

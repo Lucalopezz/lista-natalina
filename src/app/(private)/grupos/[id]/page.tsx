@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireCurrentUser } from "@/modules/auth/session";
 import { getGroupService } from "@/modules/groups/server";
+import { getReservationService } from "@/modules/reservations/server";
 import { GroupError } from "@/modules/groups/service";
 import { candidateQuerySchema, groupPageSchema } from "@/modules/groups/validation";
 import { GroupOperationButton } from "@/modules/groups/components/group-operation-button";
@@ -22,6 +23,10 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
   catch (error) { if (error instanceof GroupError && error.code === "not_found") notFound(); throw error; }
   const { group, members } = detail;
   const isAdmin = group.adminId === user.id;
+  // Em amigo secreto só o resultado da própria sessão determina os links.
+  // A rota de lista e as actions reaplicam a política; este if só orienta a UI.
+  const recipientId = group.type === "secret_santa" && group.hasActiveDraw
+    ? (await (await getReservationService()).context(user.id, group.id)).recipientId : null;
   const search = candidateQuerySchema.safeParse({ q: query.q ?? "", cursor: query.searchCursor });
   let candidates: Page<Member> = { items: [], nextCursor: null };
   // A condição só controla apresentação. service.search também exige admin no backend.
@@ -57,6 +62,7 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
         </section>
       )}
 
+      {group.type === "secret_santa" && !group.hasActiveDraw && <p className="mt-6 rounded-lg border border-line bg-field p-4 leading-relaxed">As listas de outras pessoas ficam fechadas até o sorteio. Depois, você verá apenas a lista da pessoa que tirar.</p>}
       <section aria-labelledby="members-title" className="mt-8">
         <h2 id="members-title" className="text-2xl font-bold">Quem está no grupo</h2>
         <ul aria-label="Participantes" className="mt-4 divide-y divide-line rounded-xl border border-line bg-field px-5">
@@ -64,6 +70,9 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
             <li key={member.id} className="py-5">
               <p className="font-bold wrap-anywhere">{member.name}{member.id === user.id ? " (você)" : ""}</p>
               <p className="mt-1 text-base text-muted">{member.id === group.adminId ? "Administrador do grupo" : "Participante"}</p>
+              {(member.id === user.id || group.type === "conventional" || member.id === recipientId) && (
+                <Link href={member.id === user.id ? "/presentes" : `/grupos/${group.id}/listas/${member.id}`} className="mt-3 inline-flex min-h-12 items-center rounded-lg border-2 border-ink px-4 py-3 text-base font-bold hover:bg-soft">{member.id === user.id ? "Ver minha lista" : "Ver lista de presentes"}</Link>
+              )}
               {isAdmin && member.id !== user.id && (
                 <details className="mt-3">
                   {/* Ações ocasionais ficam separadas da leitura da lista de pessoas.
