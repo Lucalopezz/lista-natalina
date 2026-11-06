@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { getGroupService } from "@/modules/groups/server";
+import { SecretSantaCard } from "@/modules/secret-santa/components/result-card";
 import { GroupCard } from "@/modules/groups/components/group-card";
 import { requireCurrentUser } from "@/modules/auth/session";
 
 export default async function DashboardPage() {
   const user = await requireCurrentUser();
-  const groups = await (await getGroupService()).list(user.id);
+  const service = await getGroupService();
+  const [groups, drawn] = await Promise.all([service.list(user.id), service.drawnGroups(user.id)]);
   return (
     <section className="py-8">
       <h1 className="text-3xl leading-tight font-bold wrap-anywhere">Olá, {user.name}.</h1>
@@ -22,6 +24,7 @@ export default async function DashboardPage() {
           <Link href="/grupos/novo" className="mt-5 flex min-h-12 items-center justify-center rounded-lg border-2 border-ink px-5 py-3 text-base font-bold hover:bg-soft">Criar grupo</Link>
         </section>
       </div>
+      {drawn.items.length > 0 && <section className="mt-8" aria-labelledby="my-draws-title"><h2 id="my-draws-title" className="text-2xl font-bold">Meus amigos secretos</h2><div className="mt-4 grid gap-4 md:grid-cols-2">{drawn.items.map((group) => <SecretSantaCard key={group.id} group={group} />)}</div>{drawn.nextCursor && <Link href="/amigos-secretos" className="mt-3 inline-flex min-h-12 items-center py-3 underline underline-offset-4">Ver todos os amigos secretos</Link>}</section>}
       <section className="mt-10" aria-labelledby="my-groups-title">
         <h2 id="my-groups-title" className="text-2xl font-bold">Meus grupos</h2>
         {groups.items.length ? <div className="mt-5 grid gap-4 md:grid-cols-2">{groups.items.map((group) => <GroupCard key={group.id} group={group} />)}</div> : (

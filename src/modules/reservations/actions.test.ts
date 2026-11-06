@@ -33,6 +33,11 @@ describe("actions de reservas", () => {
     expect(mocks.redirect).toHaveBeenCalledWith(`/grupos/${group}/listas/${owner}?status=reservado`);
     expect(mocks.revalidate).toHaveBeenCalledWith(`/grupos/${group}/listas/${owner}`);
   });
+  it("reserva do amigo secreto volta para o próprio resultado", async () => {
+    mocks.reserve.mockResolvedValueOnce({ groupType: "secret_santa" });
+    await expect(reserveGiftAction(group, owner, gift, empty, form())).rejects.toThrow("NEXT_REDIRECT");
+    expect(mocks.redirect).toHaveBeenCalledWith(`/grupos/${group}/amigo-secreto?status=reservado`);
+  });
   it("cancelamento exige confirmação antes de persistir", async () => {
     expect((await cancelReservationAction(group, owner, gift, empty, new FormData())).message).toContain("Confirme");
     expect(mocks.service).not.toHaveBeenCalled();

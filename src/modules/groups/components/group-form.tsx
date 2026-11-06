@@ -8,7 +8,7 @@ import type { GroupActionState, GroupView } from "../types";
 const inputClass = "min-h-12 w-full rounded-lg border border-[#8c998d] bg-field p-3 text-base text-ink disabled:opacity-60";
 const groupTypes = [
   { value: "conventional", label: "Lista em grupo", description: "Para organizar presentes entre família e amigos, sem sorteio." },
-  { value: "secret_santa", label: "Amigo secreto", description: "Cada pessoa terá alguém para presentear quando o sorteio estiver disponível." },
+  { value: "secret_santa", label: "Amigo secreto", description: "O administrador realiza o sorteio com pelo menos três pessoas. Cada um vê apenas quem tirou." },
 ] as const;
 export function GroupForm({ group }: { group?: GroupView }) {
   const [state, submit, pending] = useActionState<GroupActionState, FormData>(group ? updateGroupAction.bind(null, group.id) : createGroupAction, { message: "" });
@@ -32,7 +32,7 @@ export function GroupForm({ group }: { group?: GroupView }) {
             </label>
           ))}
           {state.fields?.type && <p id="group-type-error" className="text-error">{state.fields.type[0]}</p>}
-          <p className="text-base leading-relaxed text-muted">Por enquanto, você pode criar grupos e adicionar pessoas. As listas já podem ser acessadas nos grupos sem sorteio. O sorteio de amigo secreto ainda não está disponível.</p>
+          <p className="text-base leading-relaxed text-muted">Em lista em grupo, todos veem as listas dos participantes. Em amigo secreto, cada pessoa vê somente a lista de quem tirou, depois do sorteio.</p>
         </fieldset>
       )}
       <div className="grid gap-2">

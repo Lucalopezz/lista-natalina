@@ -18,7 +18,7 @@ export function AccountNav() {
       {links.map(({ href, label }) => {
         // Subpáginas de edição/criação continuam pertencendo à mesma seção.
         // aria-current comunica a localização também a quem usa leitor de tela.
-        const current = pathname === href || pathname.startsWith(`${href}/`);
+        const current = pathname === href || pathname.startsWith(`${href}/`) || (href === "/grupos" && pathname === "/amigos-secretos");
         return (
           <Link key={href} href={href} aria-current={current ? "page" : undefined}
             className={`flex min-h-12 items-center justify-center rounded-lg border px-3 py-3 text-center text-base font-bold ${current ? "border-ink bg-ink text-white" : "border-line bg-field text-ink underline underline-offset-4 hover:bg-soft"}`}>

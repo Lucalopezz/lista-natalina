@@ -2,14 +2,15 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { requireCurrentUser } from "@/modules/auth/session";
 import { getGroupService } from "@/modules/groups/server";
-import { getReservationService } from "@/modules/reservations/server";
+import { getSecretSantaService } from "@/modules/secret-santa/server";
+import { DrawControls } from "@/modules/secret-santa/components/draw-controls";
 import { GroupError } from "@/modules/groups/service";
 import { candidateQuerySchema, groupPageSchema } from "@/modules/groups/validation";
 import { GroupOperationButton } from "@/modules/groups/components/group-operation-button";
 import type { GroupView, Member, Page } from "@/modules/groups/types";
 
 export const metadata = { title: "Grupo | Lista Natalina" };
-const feedback: Record<string, string> = { criado: "Grupo criado.", atualizado: "Grupo atualizado.", participante_adicionado: "Participante adicionado.", participante_removido: "Participante removido.", administracao_transferida: "Administração transferida." };
+const feedback: Record<string, string> = { criado: "Grupo criado.", atualizado: "Grupo atualizado.", participante_adicionado: "Participante adicionado.", participante_removido: "Participante removido.", administracao_transferida: "Administração transferida.", sorteado: "Sorteio realizado. Cada pessoa já pode consultar seu amigo secreto.", sorteio_refeito: "Sorteio refeito. Consulte seu novo resultado.", sorteio_cancelado: "Sorteio cancelado. As reservas deste sorteio também foram canceladas." };
 type Query = { q?: string | string[]; membersCursor?: string | string[]; searchCursor?: string | string[]; status?: string | string[] };
 export default async function GroupPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Query> }) {
   const user = await requireCurrentUser();
@@ -23,10 +24,7 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
   catch (error) { if (error instanceof GroupError && error.code === "not_found") notFound(); throw error; }
   const { group, members } = detail;
   const isAdmin = group.adminId === user.id;
-  // Em amigo secreto só o resultado da própria sessão determina os links.
-  // A rota de lista e as actions reaplicam a política; este if só orienta a UI.
-  const recipientId = group.type === "secret_santa" && group.hasActiveDraw
-    ? (await (await getReservationService()).context(user.id, group.id)).recipientId : null;
+  const drawStatus = group.type === "secret_santa" ? await (await getSecretSantaService()).status(user.id, group.id) : null;
   const search = candidateQuerySchema.safeParse({ q: query.q ?? "", cursor: query.searchCursor });
   let candidates: Page<Member> = { items: [], nextCursor: null };
   // A condição só controla apresentação. service.search também exige admin no backend.
@@ -41,6 +39,8 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
       <p className="mt-4 font-bold">{isAdmin ? "Você administra este grupo." : "Você participa deste grupo."}</p>
       {isAdmin && <Link href={`/grupos/${group.id}/editar`} className="mt-3 inline-flex min-h-12 items-center rounded-lg border border-ink px-4 py-3 text-base underline underline-offset-4">Editar grupo</Link>}
       {status && <p role="status" className="mt-6 rounded-lg border border-ink bg-soft p-4">{status}</p>}
+      {drawStatus?.hasActiveDraw && <Link href={`/grupos/${group.id}/amigo-secreto`} className="mt-5 flex min-h-12 items-center justify-center rounded-lg bg-ink px-5 py-3 font-bold text-white">Meu amigo secreto</Link>}
+      {isAdmin && drawStatus && <DrawControls groupId={group.id} status={drawStatus} />}
       {group.hasActiveDraw && <p className="mt-6 rounded-lg border border-gold bg-field p-4 leading-relaxed">O sorteio já foi feito. Ninguém pode entrar ou sair do grupo agora. Para mudar os participantes, o administrador precisa cancelar o sorteio atual. A administração ainda pode ser transferida.</p>}
 
       {isAdmin && !group.hasActiveDraw && (
@@ -70,7 +70,7 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
             <li key={member.id} className="py-5">
               <p className="font-bold wrap-anywhere">{member.name}{member.id === user.id ? " (você)" : ""}</p>
               <p className="mt-1 text-base text-muted">{member.id === group.adminId ? "Administrador do grupo" : "Participante"}</p>
-              {(member.id === user.id || group.type === "conventional" || member.id === recipientId) && (
+              {(member.id === user.id || group.type === "conventional") && (
                 <Link href={member.id === user.id ? "/presentes" : `/grupos/${group.id}/listas/${member.id}`} className="mt-3 inline-flex min-h-12 items-center rounded-lg border-2 border-ink px-4 py-3 text-base font-bold hover:bg-soft">{member.id === user.id ? "Ver minha lista" : "Ver lista de presentes"}</Link>
               )}
               {isAdmin && member.id !== user.id && (

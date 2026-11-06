@@ -9,21 +9,24 @@ import { reservationPathSchema } from "./validation";
 import type { ReservationActionState } from "./types";
 
 async function mutate(operation: "reserve" | "cancel", groupId: string, ownerId: string, giftId: string, form: FormData): Promise<ReservationActionState> {
+  let path = `/grupos/${groupId}/listas/${ownerId}`;
   try {
     // Uma Server Action pode ser chamada diretamente. IDs bound também são
     // entrada não confiável; identidade e edição não vêm do formulário.
     const user = await getCurrentUser();
     if (!user) return { message: "Entre na sua conta para continuar." };
-    const path = reservationPathSchema.safeParse({ groupId, ownerId, giftId });
-    if (!path.success) return { message: "Não foi possível acessar esta lista ou este presente no grupo." };
+    const parsedPath = reservationPathSchema.safeParse({ groupId, ownerId, giftId });
+    if (!parsedPath.success) return { message: "Não foi possível acessar esta lista ou este presente no grupo." };
     if (operation === "cancel" && form.get("confirm") !== "cancelar") return { message: "Confirme o cancelamento da reserva." };
     const service = await getReservationService();
-    if (operation === "reserve") await service.reserve(user.id, path.data.groupId, path.data.ownerId, path.data.giftId);
-    else await service.cancel(user.id, path.data.groupId, path.data.ownerId, path.data.giftId);
+    const result = operation === "reserve" ? await service.reserve(user.id, parsedPath.data.groupId, parsedPath.data.ownerId, parsedPath.data.giftId)
+      : await service.cancel(user.id, parsedPath.data.groupId, parsedPath.data.ownerId, parsedPath.data.giftId);
+    // O contexto de retorno vem do grupo autorizado no servidor, não de uma URL
+    // arbitrária enviada pelo navegador. Amigo secreto permanece no próprio resultado.
+    if (result?.groupType === "secret_santa") path = `/grupos/${groupId}/amigo-secreto`;
   } catch (error) {
     return { message: error instanceof ReservationError ? error.message : "Não foi possível alterar a reserva agora. Tente novamente." };
   }
-  const path = `/grupos/${groupId}/listas/${ownerId}`;
   revalidatePath(path);
   // Fora do catch: o redirecionamento é controle de fluxo do framework.
   redirect(`${path}?status=${operation === "reserve" ? "reservado" : "cancelado"}`);
