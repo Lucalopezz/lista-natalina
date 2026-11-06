@@ -18,7 +18,7 @@ DTO do proprietário omite status, identidade, IDs e contagens de reservas. Terc
 
 ## Reservas e índices
 
-`reservations`: `_id`, `giftId`, `groupId`, `reservedBy`, `drawId` obrigatório para amigo secreto e ausente para convencional, `status` (`active` ou `cancelled`), `createdAt`, `updatedAt`, `cancelledAt` opcional. Estado cancelado mantém o vínculo histórico; retenção a definir antes de exclusão de contas/histórico.
+`reservations`: `_id`, `giftId`, `groupId`, `ownerId`, `reservedBy`, `drawId` obrigatório para amigo secreto e ausente para convencional, `status` (`active` ou `cancelled`), `createdAt`, `updatedAt`, `cancelledAt` opcional. ownerId é uma referência interna obtida do presente pelo servidor, para cancelar reservas do dono que saiu sem carregar toda sua lista. Estado cancelado mantém o vínculo histórico; retenção a definir antes de exclusão de contas/histórico.
 
 Índice único parcial: `{ groupId: 1, giftId: 1 }`, com `partialFilterExpression: { status: "active" }`. A edição não integra essa unicidade: nunca pode haver duas reservas ativas do mesmo presente no mesmo grupo, mesmo durante troca de edição. Índice `{ groupId: 1, drawId: 1, status: 1 }` auxilia cancelamento de edição. O mesmo presente em grupos diferentes pode ter diferentes reservantes. Nenhuma promessa de evitar compra duplicada entre grupos: a independência é intencional.
 
@@ -49,7 +49,7 @@ Criador é membro e administrador inicial. Exatamente um administrador ativo em 
 
 ## Matriz de testes adicionais obrigatórios
 
-Estes testes serão escritos antes da implementação dos comportamentos nas Fases 4–6. Nesta Fase 1 não existe serviço de domínio; registrar aqui não significa que testes de domínio já foram implementados.
+A matriz orienta os testes incrementais das Fases 4–6. Os relatórios de cada fase distinguem os comportamentos entregues dos cenários ainda dependentes de sorteio real.
 
 | Área / fase | Casos |
 | --- | --- |

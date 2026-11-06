@@ -50,7 +50,7 @@ Identificadores de domínio serializados como strings; BSON ObjectId no domínio
 | `gifts` | _id, ownerId, name, description, productUrl, imageUrl, createdAt, updatedAt | ownerId + _id decrescente para paginação sem limite total de presentes (decisão da Fase 3) |
 | `groups` | _id, name, description?, type, adminId, membershipVersion, writeVersion, activeDrawId?, createdAt, updatedAt | adminId; versão para serializar alterações de membros/sorteios |
 | `memberships` | _id, groupId, userId, joinedAt | único (groupId,userId); (userId,groupId) para dashboard e compartilhamento |
-| `reservations` | _id, giftId, groupId, reservedBy, drawId? (edição), status, createdAt, updatedAt, cancelledAt? | único parcial (groupId,giftId) onde status=active; (groupId,drawId,status) para invalidação; reservedBy |
+| `reservations` | _id, giftId, groupId, ownerId, reservedBy, drawId? (edição), status, createdAt, updatedAt, cancelledAt? | único parcial (groupId,giftId) onde status=active; (groupId,drawId,status) para invalidação; reservedBy |
 | `draws` | _id (edição), groupId, membershipVersion, status: active/invalidated, createdBy, createdAt, invalidatedAt? | groupId + createdAt; único parcial groupId onde status=active |
 | `assignments` | _id, drawId, giverId, recipientId | únicos (drawId,giverId) e (drawId,recipientId); leitura somente pelo par drawId + usuário da sessão |
 
@@ -109,7 +109,7 @@ Fase implementada: ver [FASE-4.md](FASE-4.md). Último administrador encerra com
 
 ### Fase 5 — Compartilhamento e reservas
 
-Aplicar reservas contextuais e cancelamento ao perder participação no grupo específico. TDD de consulta autorizada e negada por ID, omissão de estado para dono, reserva própria negada, duas reservas concorrentes, cancelamento por terceiro negado, exclusão/saída concorrente. Testar contra MongoDB real isolado, incluindo índices únicos e transações. UI disponível/reservado e cancelar somente própria reserva, sem revelar reservante.
+Fase implementada: ver [FASE-5.md](FASE-5.md). Reservas contextuais, índice único parcial, leitura por snapshot e cancelamento ao perder participação no grupo específico implementados. TDD de consulta autorizada e negada por ID, omissão de estado para dono, reserva própria negada, duas reservas concorrentes, cancelamento por terceiro negado, exclusão/saída concorrente. Testar contra MongoDB real isolado, incluindo índices únicos e transações. UI disponível/reservado e cancelar somente própria reserva, sem revelar reservante.
 
 ### Fase 6 — Amigo secreto
 
@@ -127,17 +127,13 @@ Commits Conventional Commits em unidades verificadas, com push quando autorizado
 
 Cada entrega informa resultado, arquivos principais com links, testes e limitações, hashes dos commits e próxima fase. Adotamos esse formato de revisão também nas próximas entregas.
 
-## Estado da Fase 1
-
-Base implementada e validada com pnpm; ver [FASE-1.md](FASE-1.md). A pendência inicial de autenticação do MongoDB foi resolvida pelo usuário na Fase 2; ping e topologia transacional confirmados. Nenhum dado ou credencial foi alterado. Fase 2 implementada; consulte [FASE-2.md](FASE-2.md). Fase 3 implementada: ver [FASE-3.md](FASE-3.md). Fase 4 implementada: ver [FASE-4.md](FASE-4.md). Fases 5–7 ainda não iniciadas.
-
 ## Referências oficiais consultadas
 
-- Next.js / App Router: https://nextjs.org/docs/app/getting-started/installation
-- Driver MongoDB / conexões: https://www.mongodb.com/docs/drivers/node/current/connect/
-- Pool MongoDB: https://www.mongodb.com/docs/drivers/node/current/connect/connection-options/connection-pools/
-- Better Auth / instalação: https://better-auth.com/docs/installation
-- Better Auth / email e senha: https://github.com/better-auth/better-auth/blob/main/docs/content/docs/authentication/email-password.mdx
-- Better Auth / adapter: https://github.com/better-auth/better-auth/blob/main/docs/content/docs/adapters/mongo.mdx
+- Next.js / App Router: <https://nextjs.org/docs/app/getting-started/installation>
+- Driver MongoDB / conexões: <https://www.mongodb.com/docs/drivers/node/current/connect/>
+- Pool MongoDB: <https://www.mongodb.com/docs/drivers/node/current/connect/connection-options/connection-pools/>
+- Better Auth / instalação: <https://better-auth.com/docs/installation>
+- Better Auth / email e senha: <https://github.com/better-auth/better-auth/blob/main/docs/content/docs/authentication/email-password.mdx>
+- Better Auth / adapter: <https://github.com/better-auth/better-auth/blob/main/docs/content/docs/adapters/mongo.mdx>
 
 Revalidar integração e requisitos das bibliotecas na fase que efetivamente as utiliza.

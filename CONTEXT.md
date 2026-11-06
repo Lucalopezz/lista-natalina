@@ -1,6 +1,6 @@
 # Contexto central — Lista Natalina
 
-Última atualização: 05/11/2026. Este arquivo facilita continuidade; confira código, Git e documentos de origem antes de concluir que uma verificação antiga continua válida. Regras de trabalho: [AGENTS.md](AGENTS.md).
+Última atualização: 06/11/2026. Este arquivo facilita continuidade; confira código, Git e documentos de origem antes de concluir que uma verificação antiga continua válida. Regras de trabalho: [AGENTS.md](AGENTS.md).
 
 ## Objetivo
 
@@ -17,8 +17,8 @@ O perfil ai-memory contribui com preferências de comunicação, conforme a orig
 
 ## Estado implementado
 
-- Fases 1–4 implementadas. Fases 5–7 ainda não iniciadas. Grupos: [FASE-4.md](docs/FASE-4.md). Consulte [FASE-2.md](docs/FASE-2.md) para autenticação, ambiente e testes.
-- Next.js 16.4.5, React 19.3.1 e TypeScript estrito; página pública, cadastro, entrada, dashboard, perfil, CRUD da lista pessoal e gerenciamento de grupos; Tailwind CSS com paleta natalina.
+- Fases 1–5 implementadas. Fases 6–7 ainda não iniciadas. Compartilhamento/reservas: [FASE-5.md](docs/FASE-5.md). Grupos: [FASE-4.md](docs/FASE-4.md). Consulte [FASE-2.md](docs/FASE-2.md) para autenticação, ambiente e testes.
+- Next.js 16.4.5, React 19.3.1 e TypeScript estrito; página pública, cadastro, entrada, dashboard, perfil, CRUD da lista pessoal, gerenciamento de grupos e reservas contextuais; Tailwind CSS com paleta natalina.
 - pnpm 12.11.2 em packageManager, pnpm-lock.yaml versionado e Node.js 24 como alvo. Instalação npm anterior removida; manter package.json.
 - Zod para validar ambiente privado, usando o nome existente `DATABASE_URL`; `DATABASE_NAME` opcional. Sem nome explícito, o driver usa o da URI ou seu padrão: confirmar banco antes de escrever.
 - Driver oficial MongoDB em módulo server-only; conexão lazy, promessa global por instância, pool máximo 10, conexão inicial descartada após falha para permitir nova tentativa.
@@ -39,9 +39,10 @@ O perfil ai-memory contribui com preferências de comunicação, conforme a orig
 | `src/modules/auth` | Autenticação e sessão |
 | `src/modules/gifts` | Validação, casos de uso, persistência, Server Actions e UI da lista pessoal |
 | `src/modules/groups` | Administração, participantes, pesquisa mínima, transações e UI de grupos |
-| Demais módulos futuros | users, reservations e secret-santa, criados conforme cada fase |
+| `src/modules/reservations` | Autorização de listas no grupo, disponibilidade, reservas e cancelamento sistêmico |
+| Demais módulos futuros | users e secret-santa, criados conforme cada fase |
 
-Better Auth 1.7.17 com adapter MongoDB implementado. Senha de 6–128 caracteres, sessão de 7 dias, sem confirmação de email nem recuperação de senha (decisões explícitas do usuário). Há cadastro/login/logout/perfil e índices de auth. Presentes implementados na [Fase 3](docs/FASE-3.md), incluindo paginação de 24 itens sem limite total, edição/exclusão restritas ao dono e imagem opcional com ilustração local padrão. Grupos implementados na Fase 4. Compartilhamento de listas, reservas e sorteios ainda não implementados.
+Better Auth 1.7.17 com adapter MongoDB implementado. Senha de 6–128 caracteres, sessão de 7 dias, sem confirmação de email nem recuperação de senha (decisões explícitas do usuário). Há cadastro/login/logout/perfil e índices de auth. Presentes implementados na [Fase 3](docs/FASE-3.md), incluindo paginação de 24 itens sem limite total, edição/exclusão restritas ao dono e imagem opcional com ilustração local padrão. Grupos implementados na Fase 4. Compartilhamento e reservas implementados na Fase 5. Geração/invalidação/novo sorteio ainda não implementados.
 
 ## Invariantes de negócio
 
@@ -50,7 +51,7 @@ Better Auth 1.7.17 com adapter MongoDB implementado. Senha de 6–128 caracteres
 - Em amigo secreto, antes do sorteio não há acesso a listas alheias; depois, somente à lista do destinatário do usuário autenticado.
 - Permissão sempre depende do grupo acessado. Um grupo convencional em comum não libera acesso pelo contexto de amigo secreto.
 - Reserva pertence a grupo + presente; amigo secreto inclui edição. Mesmo presente pode ter reservas distintas em grupos diferentes.
-- Índice proposto: único parcial (groupId,giftId) para status=active. Proprietário nunca recebe estado/identidade das reservas.
+- Índice implementado: único parcial (groupId,giftId) para status=active. Proprietário nunca recebe estado/identidade das reservas.
 - Somente o reservante cancela manualmente. Invalidação de sorteio cancela reservas da edição de forma sistêmica.
 - Uma edição ativa por grupo. Refazer invalida anterior e cancela reservas dela na mesma transação, preservando outros grupos.
 - Edição ativa bloqueia adição, remoção e saída de membros. Administrador precisa invalidar explicitamente antes de alterar composição.
@@ -71,13 +72,21 @@ Servidor de desenvolvimento iniciado em http://localhost:3000 nesta sessão; ver
 
 ## Revisão após a Fase 4
 
-O usuário solicitou interface mais simples para incluir pessoas mais velhas, com commit/push, e explicação detalhada do projeto. Implementada revisão de apresentação/interação: fonte base 18 px, textos diretos, menu visível com seção atual, ações principais maiores, mostrar senha, imagem opcional recolhida, tipos de grupo explicados e gestão por pessoa em detalhes. Backend/regras das Fases 1–4 preservados; Fase 5 não iniciada.
+O usuário solicitou interface mais simples para incluir pessoas mais velhas, com commit/push, e explicação detalhada do projeto. Implementada revisão de apresentação/interação: fonte base 18 px, textos diretos, menu visível com seção atual, ações principais maiores, mostrar senha, imagem opcional recolhida, tipos de grupo explicados e gestão por pessoa em detalhes. Naquela revisão, backend/regras das Fases 1–4 foram preservados; a Fase 5 foi implementada posteriormente, conforme o registro abaixo.
 
 Guia de estudo: [COMO-O-PROJETO-FUNCIONA.md](docs/COMO-O-PROJETO-FUNCIONA.md). Relatório: [REVISAO-INTERFACE.md](docs/REVISAO-INTERFACE.md). E2E passa a 12 cenários desktop/celular; o novo cobre teclado, foco, senha, imagem opcional, cancelamento e texto ampliado em viewport 320 px. Capturas revisadas. Isso não substitui teste de usabilidade com o público nem auditoria completa de acessibilidade.
 
+## Fase 5 — listas e reservas
+
+Implementados acesso contextual a listas, disponibilidade por grupo e reserva/cancelamento autenticados, com índice único parcial e transações. Rota `/grupos/[id]/listas/[ownerId]`. Dono não consulta nem recebe reservas, incluindo datas públicas inalteradas. Autorização de amigo secreto exige edição ativa/grupo/versão e destinatário da sessão, sem exceção para admin; geração de sorteio permanece futura.
+
+Reservar/cancelar escrevem grupo e presente. Saída/remoção cancelam reservas como dono ou reservante no grupo afetado; exclusão de presente cancela em todos os grupos. Remanescentes são cancelados ao encerrar grupo. Tudo na sessão da operação principal. Histórico cancelado permanece sem endpoint público. ownerId da reserva vem do presente, não do formulário; reservationVersion é interno e não é serializado.
+
+Verificação desta etapa: 152 testes isolados, 58 de integração e 14 E2E desktop/celular; lint, tipos e build passaram. Capturas de reservas revisadas. Fixture de invalidação testa o protocolo concorrente, mas não substitui implementar/testar o caso de uso real na Fase 6. Banco de produção e .env preservados.
+
 ## Próxima etapa
 
-Fase 5: compartilhamento de listas com autorização contextual e reservas privadas por grupo/edição. Não iniciar automaticamente após esta entrega: o usuário pediu avanço por etapas. A Fase 4 e os respectivos commits/push foram autorizados.
+Fase 6: confirmar mínimo de participantes e implementar sorteio, resultado individual, invalidação e novo sorteio com cancelamento transacional das reservas da edição. Não iniciar automaticamente após esta entrega: o usuário pediu avanço por etapas. A Fase 5 e seus commits/push foram autorizados pela continuidade desta sessão.
 
 Pendências das fases seguintes: mínimo de participantes para sorteio, edição de perfil e exclusão de conta/retenção. Último administrador pode encerrar com confirmação, sem sorteio ativo; regra já confirmada pelo usuário. Senha/sessão e ausência de email/recuperação já estão definidos, não perguntar novamente.
 

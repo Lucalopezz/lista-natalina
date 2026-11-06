@@ -6,15 +6,14 @@ Este guia explica o código existente para estudo e manutenção. Leia primeiro 
 
 O projeto é uma aplicação **full-stack**: as páginas e o código que acessa o banco ficam no mesmo repositório Next.js. O navegador não acessa o MongoDB diretamente.
 
-| Disponível nas Fases 1–4 | Ainda planejado |
+| Disponível nas Fases 1–5 | Ainda planejado |
 | --- | --- |
-| Cadastro, entrada, saída e sessão | Listas de outras pessoas dentro de um grupo |
-| Perfil próprio, com nome e email | Reservas de presentes por grupo |
-| Adicionar, listar, editar e excluir seus presentes | Sorteio, resultado individual e novo sorteio |
-| Grupos convencionais e do tipo amigo secreto | Invalidação de sorteio com cancelamento das reservas |
-| Inclusão direta, remoção, saída e transferência de administração | Revisão final e deploy na Vercel |
+| Cadastro, entrada, saída, sessão e perfil próprio | Geração do sorteio de amigo secreto |
+| Adicionar, listar, editar e excluir seus presentes | Seção dedicada ao resultado individual |
+| Grupos, participantes e transferência de administração | Invalidação e novo sorteio com cancelamento da edição |
+| Listas compartilhadas por contexto e reservas privadas por grupo | Revisão final e deploy na Vercel |
 
-O tipo amigo secreto já pode ser escolhido, mas **o sorteio ainda não é executado**. A estrutura e os bloqueios para um sorteio ativo estão preparados e testados com fixtures. Não confunda isso com a implementação da Fase 6.
+O tipo amigo secreto já pode ser escolhido, mas **o sorteio ainda não é executado**. A estrutura, os bloqueios e a autorização de listas/reservas por destinatário estão preparados e testados com fixtures. Não confunda isso com a implementação da Fase 6.
 
 A imagem de um presente é opcional. Nome, descrição e link do produto continuam obrigatórios. Não há confirmação de email nem recuperação de senha, conforme a definição do projeto.
 
@@ -62,7 +61,8 @@ lista-natalina/
 │   └── modules/
 │       ├── auth/                 # Identidade e sessões
 │       ├── gifts/                # Lista pessoal de presentes
-│       └── groups/               # Grupos e participações
+│       ├── groups/               # Grupos e participações
+│       └── reservations/         # Listas contextuais, disponibilidade e reservas
 ├── public/images/                # Ilustração padrão do presente
 ├── e2e/                          # Fluxos de navegador desktop/celular
 ├── scripts/                      # Banco de testes, diagnóstico e ícones
@@ -74,7 +74,7 @@ lista-natalina/
 └── pnpm-lock.yaml                # Versões resolvidas das dependências
 ```
 
-Os módulos `reservations` e `secret-santa` serão criados quando suas fases forem implementadas. Não há arquivos vazios fingindo que essas funcionalidades estão prontas. A consulta mínima de usuários para adicionar membros está atualmente em `groups`, sem um módulo `users` artificial.
+O módulo `reservations` foi acrescentado na Fase 5; `secret-santa` será criado com os casos de uso da Fase 6. Não há arquivos vazios fingindo que essas funcionalidades estão prontas. A consulta mínima de usuários para adicionar membros está atualmente em `groups`, sem um módulo `users` artificial.
 
 ## 4. Como uma pasta vira uma página
 
@@ -92,6 +92,7 @@ Os módulos `reservations` e `secret-santa` serão criados quando suas fases for
 | `/grupos/novo` | `(private)/grupos/novo/page.tsx` | Criação de grupo |
 | `/grupos/ID` | `(private)/grupos/[id]/page.tsx` | Informações, pessoas e administração |
 | `/grupos/ID/editar` | `(private)/grupos/[id]/editar/page.tsx` | Edição pelo administrador |
+| `/grupos/ID/listas/PESSOA` | `(private)/grupos/[id]/listas/[ownerId]/page.tsx` | Lista autorizada e reservas do grupo atual |
 | `/api/auth/...` | `api/auth/[...all]/route.ts` | Operações HTTP de autenticação |
 
 `(private)` e `(auth)` são **grupos de rotas**: organizam arquivos e compartilham layouts, mas os parênteses não entram na URL. `[id]` recebe um segmento variável. `[...all]` recebe os segmentos restantes do caminho da autenticação.
@@ -240,7 +241,7 @@ async create(actor: string | null, input: unknown) {
   const ownerId = actorId(actor);
   const data = validatedInput(input);
   const now = new Date();
-  return view(await repository.insert({
+  return toGiftView(await repository.insert({
     ...data, ownerId, createdAt: now, updatedAt: now,
   }));
 },
@@ -248,7 +249,7 @@ async create(actor: string | null, input: unknown) {
 
 `actor` é quem executa a operação, já identificado na borda. O serviço valida novamente o contrato para não depender de um único chamador. Datas são geradas no servidor.
 
-`view` monta o DTO por campos permitidos e converte datas para texto ISO. **DTO** é o objeto de saída preparado para a interface; ele não é o documento completo do banco. O DTO do presente não tem disponibilidade nem identidade de reservante.
+`toGiftView`, em `gifts/dto.ts`, monta o DTO por campos permitidos e converte datas para texto ISO. **DTO** é o objeto de saída preparado para a interface; ele não é o documento completo do banco. O DTO do presente não tem disponibilidade nem identidade de reservante.
 
 ### O repositório persiste e a página atualiza
 
@@ -326,7 +327,7 @@ return await session.withTransaction(() => work(unit(session)), {
 
 `snapshot` fornece uma visão consistente para a transação; `majority` exige confirmação pela maioria dos membros do replica set. Por isso o ambiente precisa de Atlas/replica set, e os testes sobem um replica set descartável.
 
-`writeVersion` muda em toda mutação; `membershipVersion` muda apenas com a composição. A transferência não muda a composição nem o sorteio ativo. As futuras operações de sorteio/reserva precisarão participar dessa coordenação para não usar autorizações invalidadas.
+`writeVersion` muda em toda mutação; `membershipVersion` muda apenas com a composição. A transferência não muda a composição nem o sorteio ativo. As reservas já participam dessa coordenação. As futuras operações de sorteio precisam preservá-la para não usar autorizações invalidadas.
 
 Não coloque envio de email ou outro efeito externo dentro desse callback: ele pode executar mais de uma vez por causa de uma repetição transacional.
 
@@ -347,8 +348,9 @@ Repositório e serviço retornam apenas `{ id, name }` para outras pessoas. Emai
 | `gifts` | Presentes pessoais com ownerId | Índice ownerId + _id decrescente |
 | `groups` | Nome, tipo, adminId, contagem, versões e ponteiro de edição | AdminId; documento de coordenação |
 | `memberships` | groupId, userId e joinedAt | Par único e índice para listar grupos do usuário |
+| `reservations` | Presente, grupo, dono, reservante, edição opcional e estado | Único parcial groupId/giftId quando ativo; cancelamento transacional |
 
-A biblioteca também tem contrato para verificação; confirmação de email/recuperação não são oferecidas. `verification` não é um módulo de produto entregue. `reservations`, `draws` e `assignments` estão modeladas no plano para as próximas fases, não são persistências funcionais nesta entrega.
+A biblioteca também tem contrato para verificação; confirmação de email/recuperação não são oferecidas. `verification` não é um módulo de produto entregue. `reservations` já é funcional. Os índices de `draws` e `assignments` são preparados para a política de leitura; a geração/invalidação de edições ainda pertence à Fase 6.
 
 Exemplo conceitual de relação, sem representar documentos reais:
 
@@ -410,6 +412,7 @@ O banco local configurado é o banco real de produção. Cadastros manuais nele 
 | Página inicial e seus acessos | `src/app/page.tsx` e `(private)/dashboard/page.tsx` |
 | Campos de cadastro/entrada e mostrar senha | `src/modules/auth/components/auth-form.tsx` |
 | Card, campos, imagem e exclusão do presente | `src/modules/gifts/components` |
+| Disponibilidade, reserva e cancelamento | `src/modules/reservations/components` e `actions.ts` |
 | Formulário, card e confirmações de grupos | `src/modules/groups/components` |
 | Organização das pessoas/pesquisa no grupo | `src/app/(private)/grupos/[id]/page.tsx` |
 
@@ -492,7 +495,7 @@ O workflow [.github/workflows/validacao.yml](../.github/workflows/validacao.yml)
 
 ## 15. Como acrescentar uma regra sem misturar camadas
 
-Exemplo futuro: reservar um presente. Este é um roteiro arquitetural, **não uma funcionalidade já implementada**.
+Exemplo implementado na Fase 5: reservar um presente. Este é o roteiro para acompanhar os arquivos de `src/modules/reservations` e aplicar a mesma separação a novas regras.
 
 1. Escrever o teste: o dono não pode reservar o próprio presente; o mesmo presente admite uma reserva por grupo.
 2. Validar IDs e contexto em um schema.
@@ -503,7 +506,7 @@ Exemplo futuro: reservar um presente. Este é um roteiro arquitetural, **não um
 7. Testar concorrência contra MongoDB real, incluindo saída, exclusão e invalidação.
 8. Acrescentar interface, testar o fluxo e revalidar somente após sucesso.
 
-Compartilhar um grupo de amigo secreto não libera todas as listas. Mesmo que duas pessoas também pertençam a um grupo convencional, a permissão precisa considerar o **grupo acessado**. Reservas futuras também pertencem ao grupo e, quando aplicável, à edição do sorteio. Essas regras estão detalhadas em [REGRAS-DE-NEGOCIO.md](REGRAS-DE-NEGOCIO.md).
+Compartilhar um grupo de amigo secreto não libera todas as listas. Mesmo que duas pessoas também pertençam a um grupo convencional, a permissão precisa considerar o **grupo acessado**. Reservas também pertencem ao grupo e, quando aplicável, à edição do sorteio. Essas regras estão detalhadas em [REGRAS-DE-NEGOCIO.md](REGRAS-DE-NEGOCIO.md).
 
 ## 16. Ordem sugerida de leitura do código
 
@@ -512,7 +515,32 @@ Compartilhar um grupo de amigo secreto não libera todas as listas. Mesmo que du
 3. `gifts/validation.ts` → `gifts/service.ts` → `gifts/repository.ts`: veja formato, regra e banco.
 4. `auth/session.ts` → `auth/http.ts` → `auth/config.ts`: entenda identidade e sessão.
 5. `groups/service.ts` → `groups/repository.ts`: estude transações e administração.
-6. Testes desses arquivos: compare cada regra com seus casos de sucesso, erro e concorrência.
-7. `scripts/test-auth.sh` e `e2e`: acompanhe o caminho completo em um ambiente isolado.
+6. `reservations/service.ts` → `repository.ts` → `persistence.ts`: acompanhe a autorização contextual, o índice único e o cancelamento sistêmico.
+7. Testes desses arquivos: compare cada regra com seus casos de sucesso, erro e concorrência.
+8. `scripts/test-auth.sh` e `e2e`: acompanhe o caminho completo em um ambiente isolado.
 
 Para decidir comportamento, consulte o [plano](PLANO.md) e as [regras definitivas](REGRAS-DE-NEGOCIO.md). Para saber o estado atual, consulte [CONTEXT.md](../CONTEXT.md) e o Git. Este guia explica a organização; os arquivos executáveis e seus testes continuam sendo a fonte do comportamento real.
+
+
+## 17. Reservas: exemplo de concorrência e cancelamento
+
+O fluxo real está em [service.ts](../src/modules/reservations/service.ts), [repository.ts](../src/modules/reservations/repository.ts) e [persistence.ts](../src/modules/reservations/persistence.ts). O contrato da rota e os testes estão em [FASE-5.md](FASE-5.md).
+
+A reserva é por **grupo + presente**. Este trecho real cria a garantia final no MongoDB:
+
+```ts
+db.collection("reservations").createIndex(
+  { groupId: 1, giftId: 1 },
+  { unique: true, partialFilterExpression: { status: "active" } },
+);
+```
+
+O índice ignora reservas canceladas. Duas requisições para o mesmo par não conseguem publicar duas reservas ativas; a que perde recebe um conflito público de indisponibilidade. Outro groupId cria outro contexto e pode ter outro reservante para o mesmo presente.
+
+Antes de inserir, o serviço autentica na borda, valida IDs, escreve o grupo para disputar concorrência, confere os dois participantes e a política do tipo, disputa o presente e confirma seu dono. A edição de amigo secreto vem do grupo ativo; o autor vem da sessão. Não aceita esses dados como autoridade do formulário.
+
+A escrita do presente incrementa reservationVersion, sem alterar sua data pública. Ela coordena com a exclusão transacional: cancelar todas as reservas e remover o presente precisam ocorrer no mesmo commit. Caso contrário, seria possível ler um presente existente, excluí-lo em outra requisição e depois inserir uma reserva órfã.
+
+Na saída/remoção, o repositório cancela reservas com groupId atual e reservedBy ou ownerId da pessoa removida. Os outros grupos continuam intactos. ownerId foi armazenado a partir do presente, permitindo essa consulta sem carregar uma lista inteira. O cancelamento fica na mesma sessão da remoção da participação; se algo falhar, ambos voltam ao estado anterior.
+
+O dono usa sempre `toGiftView`, sem campos de reserva. Terceiros autorizados recebem só availability e canCancel. O repositório lê apenas a página corrente e não retorna a identidade de outra pessoa à interface. O botão “Atualizar lista” busca um novo snapshot após conflito, sem reenviar uma reserva.
