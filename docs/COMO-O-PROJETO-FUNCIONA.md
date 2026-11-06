@@ -14,7 +14,7 @@ O projeto é uma aplicação **full-stack**: as páginas e o código que acessa 
 | Compartilhamento e reservas | Contexto obrigatório e disponibilidade por grupo |
 | Amigo secreto | Mínimo de três pessoas, resultado privado, novo sorteio e invalidação |
 
-A preparação de deploy, edição de perfil e política de exclusão de conta/retenção exigem trabalho próprio. O histórico de implementação fica separado dos guias atuais em `docs/historico`.
+A configuração e o procedimento de publicação estão no [guia da Vercel](DEPLOY.md); a aplicação ainda não foi publicada. Edição de perfil e política de exclusão de conta/retenção exigem definição própria. O histórico de implementação fica separado dos guias atuais em `docs/historico`.
 
 A imagem de um presente é opcional. Nome, descrição e link do produto continuam obrigatórios. Não há confirmação de email nem recuperação de senha, conforme a definição do projeto.
 
@@ -180,7 +180,7 @@ return { id, name, email };
 
 `requireCurrentUser()` usa essa função e redireciona para `/entrar` quando não existe sessão. Falha de banco gera erro genérico, sem fingir que a conta deixou de existir e sem imprimir a URI.
 
-A saída chama `POST /api/auth/sign-out`. O cache de sessão em cookie está desabilitado: a próxima leitura precisa observar revogação/logout no banco.
+A saída chama `POST /api/auth/sign-out`. Todos os POSTs de autenticação, incluindo logout, limitam o corpo real a 8192 bytes, mesmo sem Content-Length confiável. Logout aceita corpo vazio e encaminha somente `{}` à biblioteca, preservando cookie e origem; campos como token/usuário/redirect não fazem parte desse contrato. O cache de sessão em cookie está desabilitado: a próxima leitura precisa observar revogação/logout no banco.
 
 A proteção contra excesso de tentativas fica persistida em `rateLimit`, funcionando entre instâncias. Fora da Vercel, a configuração não confia em headers arbitrários de IP; o contador pode ser compartilhado por usuários nessa configuração local. Na Vercel, usa o header definido pela plataforma.
 
@@ -341,6 +341,8 @@ A busca para adicionar usuários exige administrador, usa prefixo literal do nom
 
 Repositório e serviço retornam apenas `{ id, name }` para outras pessoas. Email não é público. A leitura do grupo exige participação. Os testes verificam que um repositório falso retornando campos extras também não faz o serviço vazar email/senha.
 
+Autorização e consulta de membros/candidatos usam a mesma sessão transacional de leitura. Imagine que alguém seja removido entre a verificação de participação e a listagem: sem snapshot, poderia receber nomes adicionados depois de perder acesso. A leitura agora observa um único estado consistente. Uma requisição iniciada antes da remoção pode terminar com o estado anterior, mas não mistura essa permissão com dados posteriores. Novas requisições já são recusadas. A mesma garantia vale para uma pesquisa durante transferência de administração; essa leitura não incrementa writeVersion nem bloqueia o grupo para escrita.
+
 ## 10. MongoDB: documentos, referências e índices
 
 | Coleção atual | Conteúdo | Garantia/consulta importante |
@@ -403,7 +405,7 @@ O pool tem máximo de dez conexões por instância. Na Vercel podem existir vár
 | `BETTER_AUTH_SECRET` | Segredo de assinatura da autenticação |
 | `BETTER_AUTH_URL` | Origem autorizada, incluindo HTTPS na produção |
 
-O banco local configurado é o banco real de produção. Cadastros manuais nele criam contas reais. Os testes de escrita usam outro MongoDB descartável. Não copie o `.env` para exemplos, commits, prints ou previews. O build não precisa se conectar ao banco. Deploy na Vercel ainda é uma etapa futura, com variáveis definidas por ambiente.
+O banco local configurado é o banco real de produção. Cadastros manuais nele criam contas reais. Os testes de escrita usam outro MongoDB descartável. Não copie o `.env` para exemplos, commits, prints ou previews. O build não precisa se conectar ao banco. O [guia de publicação](DEPLOY.md) detalha variáveis por ambiente, rede, capacidade e verificações ainda necessárias na Vercel.
 
 ## 12. Interface: onde alterar cada parte
 

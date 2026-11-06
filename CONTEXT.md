@@ -17,6 +17,8 @@ Fontes: instruções atuais do usuário; [regras de negócio](docs/REGRAS-DE-NEG
 - Listas autorizadas por contexto e reservas independentes por grupo, com cancelamento sistêmico ao perder acesso.
 - Sorteio mínimo de três, resultado individual, novo sorteio e invalidação com cancelamento transacional das reservas da edição.
 - Dashboard com resultados ativos, páginas responsivas e testes desktop/celular.
+- Revisão de segurança: consultas de membros/candidatos em snapshot autorizado, limite/normalização do logout, cabeçalhos de segurança e orientação noindex nas páginas privadas.
+- Preparação de publicação: Node.js 24.x no manifesto, CI com ações fixadas por SHA e [guia da Vercel](docs/DEPLOY.md). Sem deploy realizado.
 
 ## Mapa do código
 
@@ -52,6 +54,8 @@ Reserva/cancelamento escrevem grupo e presente. Exclusão de presente cancela em
 
 Invalidação/novo sorteio disputam o mesmo documento do grupo que reservas e membros. Transação invalida edição e cancela suas reservas antes de publicar nova edição/ponteiro, quando aplicável. Resultado da sessão, presentes e disponibilidade são lidos juntos em snapshot. Nem admin recebe atribuições alheias. Callback transacional não tem efeitos externos.
 
+Leituras de grupo e pesquisa de candidatos também compartilham snapshot entre permissão e dados. Requisição anterior à revogação pode terminar com estado anterior, sem incorporar dados posteriores; novas requisições são recusadas. Leituras não incrementam writeVersion.
+
 ## Ambiente e verificações
 
 Node.js 24 alvo; pnpm 12.11.2, lockfile versionado. Next.js 16.4.5, React 19.3.1, Better Auth 1.7.17. Tailwind com verde/vermelho/dourado/creme; sem biblioteca extra de formulários/estado global. Ícones em SVG/ICO/PNG e script de geração, sem suporte offline.
@@ -60,13 +64,13 @@ Banco configurado é **produção**, nome lista-natalina, conforme definição d
 
 Driver oficial server-only, conexão lazy e promessa compartilhada por instância, pool máximo dez, recuperação após falha inicial. Build não abre banco. Índices idempotentes na inicialização dos serviços; várias Functions têm pools distintos.
 
-Verificação de amigo secreto: 198 testes isolados, 77 integração e 16 E2E; lint, tipos e build aprovados. Capturas desktop/celular revisadas. A regressão de navegação recebeu teste próprio. O CI remoto é informado na entrega. Não houve testes automatizados no banco real nem deploy.
+Verificação da revisão final: 203 testes isolados, 79 integração e 20 E2E; lint, tipos, build e instalação frozen aprovados. Testes de segurança e Escape/foco passaram em desktop/celular. Auditoria completa sem vulnerabilidades conhecidas após override de minimatch restrito ao parser de desenvolvimento. Comandos locais rodaram no Node.js 22.23.3 disponível; CI usa 24 e seu resultado remoto é informado na entrega. Não houve testes automatizados no banco real nem deploy. Veja o [registro da revisão](docs/historico/revisao-final.md) para evidências e limites.
 
 Servidor local em http://localhost:3000 foi iniciado nesta sessão; verificar disponibilidade antes de prometer acesso. Ele usa a configuração real; os runners usam outro servidor/banco.
 
 ## Continuidade
 
-Amigo secreto e reorganização documental foram autorizados com commits/push na continuidade desta sessão. Próximo trabalho é revisão final de segurança, acessibilidade, integração e preparação de deploy; aguardar novo avanço do usuário antes dessa etapa. Deploy exige autorização própria.
+Revisão final de segurança, acessibilidade, integração e preparação de deploy autorizada pelo avanço do usuário, concluída com commits/push na continuidade desta sessão. Próximo trabalho é publicação e validação no ambiente Vercel, mediante autorização própria. Não iniciar deploy automaticamente.
 
 Edição de perfil, exclusão de conta e retenção de histórico continuam pendentes de definição. Mínimo, senha/sessão, ausência de email/recuperação e encerramento pelo último admin já estão definidos.
 

@@ -71,6 +71,8 @@ O contrato de verificação do adapter não corresponde a um fluxo de confirmaç
 
 Criar grupo e incluir criador são atômicos. Toda mutação do grupo disputa sua escrita e relê participação/administração, impedindo uso de poderes antigos após transferência. membershipVersion muda somente com composição; writeVersion coordena também reservas e sorteios, sem aparecer na resposta pública.
 
+Leitura do grupo e pesquisa de candidatos verificam permissão e consultam dados no mesmo snapshot transacional. Uma leitura já iniciada pode concluir com o estado anterior à revogação, sem incorporar membros/contas surgidos depois. Leituras não escrevem writeVersion; novas requisições observam a permissão atual.
+
 Reserva/cancelamento disputam grupo e presente. Exclusão de presente disputa a mesma escrita por reservationVersion, cancela reservas em todos os grupos e remove o item em uma transação. Saída/remoção cancela reservas como dono ou reservante somente no grupo afetado. Encerramento cancela remanescentes do grupo.
 
 ### Amigo secreto
@@ -96,6 +98,8 @@ Replica set/Atlas é necessário. Operações usam readConcern snapshot e writeC
 - Links aceitam HTTP/HTTPS, sem credenciais embutidas ou esquemas executáveis; descrições são texto React.
 - Cookies são HttpOnly, SameSite=Lax e Secure com HTTPS; senha scrypt de 6–128 caracteres, sessão de sete dias.
 - Falhas privadas são sanitizadas; não há URI, senha, token ou resultado coletivo em mensagens/logs.
+- POSTs de autenticação limitam corpo real a 8192 bytes; logout aceita corpo vazio e descarta campos extras.
+- Cabeçalhos restringem incorporação, sniffing, referrer e permissões de hardware. A CSP é parcial; textos React e validação de URLs continuam necessários. Páginas privadas orientam indexadores com noindex/nofollow, sem substituir autenticação.
 
 ## Testabilidade e operação
 
@@ -105,7 +109,7 @@ Conexão é lazy, com promessa compartilhada por instância, pool máximo de dez
 
 ## Decisões ainda abertas
 
-Edição de perfil, exclusão de conta/retenção de histórico e preparação final de deploy precisam de definição própria. A revisão final inclui segurança, acessibilidade, limites/custos e configuração por ambiente. Não há alteração silenciosa dessas regras por conveniência de implementação.
+Edição de perfil e exclusão de conta/retenção de histórico precisam de definição própria. Configuração de publicação e verificações do ambiente estão no [guia de deploy](DEPLOY.md). Publicar exige autorização específica e validação da infraestrutura real. Não há alteração silenciosa dessas regras por conveniência de implementação.
 
 ## Referências oficiais
 

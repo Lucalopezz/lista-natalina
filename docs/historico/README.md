@@ -9,3 +9,4 @@ Registros técnicos preservados para rastrear decisões e validações de cada e
 - [Reservas](reservas.md)
 - [Interface](interface.md)
 - [Amigo secreto](amigo-secreto.md)
+- [Revisão de segurança, acessibilidade e publicação](revisao-final.md)

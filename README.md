@@ -94,7 +94,7 @@ O ícone fonte está em `src/app/icon.svg`. Para regenerar PNGs/ICO: `node scrip
 
 ## Vercel
 
-Projeto único Next.js/Node.js 24. Instalação `pnpm install --frozen-lockfile`, build `pnpm build` e saída padrão do framework. Configure variáveis por ambiente, origem HTTPS e segredo próprios. Previews precisam de banco separado. Deploy ainda não realizado.
+Projeto único Next.js/Node.js 24. Instalação `pnpm install --frozen-lockfile`, build `pnpm build` e saída padrão do framework. O [guia de publicação](docs/DEPLOY.md) explica origem HTTPS, variáveis por ambiente, banco separado para preview e verificação do deployment. Deploy ainda não realizado.
 
 Não há dependência de processo permanente nem armazenamento local persistente. O pool MongoDB tem máximo de dez conexões por instância; múltiplas Functions têm pools distintos. Escolha uma região próxima ao banco e dimensione permissões/rede/conexões para a concorrência esperada.
 
@@ -103,3 +103,4 @@ Não há dependência de processo permanente nem armazenamento local persistente
 - [Guia do projeto: estrutura, fluxos e exemplos de código](docs/COMO-O-PROJETO-FUNCIONA.md)
 - [Arquitetura e modelagem](docs/PLANO.md)
 - [Regras de negócio e privacidade](docs/REGRAS-DE-NEGOCIO.md)
+- [Publicação na Vercel](docs/DEPLOY.md)
