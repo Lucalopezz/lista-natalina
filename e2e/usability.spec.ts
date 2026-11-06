@@ -42,6 +42,13 @@ test("navegação clara, senha visível e formulário simples com cancelamento s
   await expect(page.getByRole("dialog")).not.toBeVisible();
   await expect(page.getByRole("button", { name: "Excluir", exact: true })).toBeFocused();
   await expect(page.getByRole("heading", { name: "Livro de receitas", exact: true })).toBeVisible();
+  // Escape é a alternativa de teclado para desistir; o foco não pode ficar
+  // preso no diálogo fechado nem a ação destrutiva acontecer por acidente.
+  await page.getByRole("button", { name: "Excluir", exact: true }).click();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Excluir", exact: true })).toBeFocused();
+  await expect(page.getByRole("heading", { name: "Livro de receitas", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: `test-results/${test.info().project.name}-lista-simples.png`, fullPage: true });
   // Tela estreita e fonte duplicada: manter o acesso sem rolagem lateral é

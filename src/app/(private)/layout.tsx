@@ -3,6 +3,8 @@ import { AccountNav } from "@/components/account-nav";
 import { requireCurrentUser } from "@/modules/auth/session";
 import { SignOutButton } from "@/modules/auth/components/sign-out-button";
 
+export const metadata = { robots: { index: false, follow: false } };
+
 export default async function PrivateLayout({ children }: { children: React.ReactNode }) {
   await requireCurrentUser();
   return (
