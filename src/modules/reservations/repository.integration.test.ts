@@ -81,9 +81,13 @@ describe("reservas reais e autorização contextual", () => {
     expect((await service.list(A, other.id, B)).gifts.find((g) => g.id === gift.id)).toMatchObject({ availability: "reserved", canCancel: false });
   });
   it("dono não recebe dados de reserva nas duas rotas de leitura", async () => {
-    const { group, gift } = await setup(); await service.reserve(A, group.id, B, gift.id);
+    const { group, gift } = await setup();
+    const before = await gifts.get(B, gift.id);
+    await service.reserve(A, group.id, B, gift.id);
     const sharedOwn = (await service.list(B, group.id, B)).gifts.find((g) => g.id === gift.id)!;
     const personal = await gifts.get(B, gift.id);
+    expect(personal).toEqual(before);
+    expect(sharedOwn).toEqual(before);
     expect(Object.keys(sharedOwn).sort()).toEqual(Object.keys(personal).sort());
     expect(sharedOwn).not.toHaveProperty("availability"); expect(sharedOwn).not.toHaveProperty("canCancel");
     expect(sharedOwn).not.toHaveProperty("reservationVersion");
