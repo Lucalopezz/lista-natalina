@@ -7,8 +7,8 @@ const member = "000000000000000000000002";
 const stranger = "000000000000000000000003";
 const id = "000000000000000000000004";
 const group = { id, adminId: admin, name: "Família", description: "Natal juntos", type: "conventional" as const, memberCount: 2, membershipVersion: 2, writeVersion: 1, createdAt: new Date(), updatedAt: new Date(), activeDrawId: null as string | null };
-const tx = { lock: vi.fn(), userExists: vi.fn(), isMember: vi.fn(), insertGroup: vi.fn(), insertMember: vi.fn(), patch: vi.fn(), removeMember: vi.fn(), deleteGroup: vi.fn() } satisfies GroupTransaction;
 const reads = { getForMember: vi.fn(), listForMember: vi.fn(), listMembers: vi.fn(), searchCandidates: vi.fn() };
+const tx = { ...reads, lock: vi.fn(), userExists: vi.fn(), isMember: vi.fn(), insertGroup: vi.fn(), insertMember: vi.fn(), patch: vi.fn(), removeMember: vi.fn(), deleteGroup: vi.fn() } satisfies GroupTransaction;
 const repository: GroupRepository = { ...reads, transaction: async <T>(work: (unit: GroupTransaction) => Promise<T>) => work(tx) };
 const service = createGroupService(repository);
 beforeEach(() => {

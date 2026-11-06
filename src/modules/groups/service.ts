@@ -39,8 +39,8 @@ function publicMembers(result: Page<Member>): Page<Member> {
 }
 
 export function createGroupService(repository: GroupRepository) {
-  async function readable(actor: string, id: string) {
-    return found(await repository.getForMember(actor, id));
+  async function readable(unit: GroupTransaction, actor: string, id: string) {
+    return found(await unit.getForMember(actor, id));
   }
   async function locked(unit: GroupTransaction, actor: string, id: string, adminOnly = true) {
     const group = found(await unit.lock(id));
@@ -85,19 +85,27 @@ export function createGroupService(repository: GroupRepository) {
     async get(actor: string | null, id: unknown, query: unknown = {}) {
       const userId = identity(actor);
       const groupId = target(id);
-      const group = await readable(userId, groupId);
       const parsed = groupPageSchema.safeParse(query);
       if (!parsed.success) throw new GroupError("invalid", "Página de participantes inválida.");
-      return { group: view(group), members: publicMembers(await repository.listMembers(groupId, parsed.data.cursor)) };
+      return repository.transaction(async (unit) => {
+        // Permissão e membros são do mesmo snapshot. Se houver remoção durante
+        // a requisição, não misturamos autorização antiga com membros posteriores.
+        const group = await readable(unit, userId, groupId);
+        return { group: view(group), members: publicMembers(await unit.listMembers(groupId, parsed.data.cursor)) };
+      });
     },
     async search(actor: string | null, id: unknown, query: unknown) {
       const userId = identity(actor);
       const groupId = target(id);
-      admin(await readable(userId, groupId), userId);
       const parsed = candidateQuerySchema.safeParse(query);
       if (!parsed.success) throw new GroupError("invalid", "Use até 100 caracteres para pesquisar pelo nome.");
-      if (!parsed.data.q) return { items: [], nextCursor: null };
-      return publicMembers(await repository.searchCandidates(groupId, parsed.data.q, parsed.data.cursor));
+      return repository.transaction(async (unit) => {
+        // Transferir a administração não pode deixar uma busca em andamento
+        // consultar cadastros de um estado posterior à autorização daquele autor.
+        admin(await readable(unit, userId, groupId), userId);
+        if (!parsed.data.q) return { items: [], nextCursor: null };
+        return publicMembers(await unit.searchCandidates(groupId, parsed.data.q, parsed.data.cursor));
+      });
     },
     async update(actor: string | null, id: unknown, input: unknown) {
       const userId = identity(actor), groupId = target(id);

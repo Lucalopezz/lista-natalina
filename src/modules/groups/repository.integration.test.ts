@@ -157,6 +157,44 @@ describe("grupos no MongoDB real", () => {
     await service.remove(A, other.id, B);
     expect((await db.collection("reservations").findOne({ _id: inserted.insertedIds[2] }))?.status).toBe("cancelled");
   });
+  it("leitura iniciada antes da remoção não mistura membros adicionados depois", async () => {
+    const group = await create(); await service.add(A, group.id, B);
+    let barriers = 0;
+    const afterRead = async <T>(read: () => Promise<T>) => {
+      const result = await read(); barriers++;
+      await service.remove(A, group.id, B); await service.add(A, group.id, C);
+      return result;
+    };
+    // A barreira reproduz a revogação exatamente entre autorização e listagem.
+    // Não é um efeito externo do código da aplicação; existe só nesta fixture.
+    const racing = createGroupService({ ...repository,
+      getForMember: (actor, id) => afterRead(() => repository.getForMember(actor, id)),
+      transaction: (work) => repository.transaction((unit) => work({ ...unit, getForMember: (actor, id) => afterRead(() => unit.getForMember(actor, id)) })),
+    });
+    const result = await racing.get(B, group.id);
+    expect(barriers).toBe(1);
+    expect(result.members.items.map((member) => member.id).sort()).toEqual([A, B].sort());
+    await expect(service.get(B, group.id)).rejects.toMatchObject({ code: "not_found" });
+    expect((await service.get(A, group.id)).members.items.some((member) => member.id === C)).toBe(true);
+  });
+  it("pesquisa não incorpora contas criadas após transferência concorrente", async () => {
+    const group = await create(); await service.add(A, group.id, B);
+    const name = `Cadastro posterior ${new ObjectId().toHexString()}`;
+    let barriers = 0;
+    const afterRead = async <T>(read: () => Promise<T>) => {
+      const result = await read(); barriers++;
+      await service.transfer(A, group.id, B);
+      await db.collection("user").insertOne({ name, email: "late-fixture@example.test" });
+      return result;
+    };
+    const racing = createGroupService({ ...repository,
+      getForMember: (actor, id) => afterRead(() => repository.getForMember(actor, id)),
+      transaction: (work) => repository.transaction((unit) => work({ ...unit, getForMember: (actor, id) => afterRead(() => unit.getForMember(actor, id)) })),
+    });
+    expect((await racing.search(A, group.id, { q: name })).items).toEqual([]);
+    expect(barriers).toBe(1);
+    await expect(service.search(A, group.id, { q: name })).rejects.toMatchObject({ code: "forbidden" });
+  });
   it("filtra amigos secretos antes de limitar a página de grupos", async () => {
     const secret = await create("Ativo antigo", "secret_santa");
     await db.collection("groups").updateOne({ _id: new ObjectId(secret.id) }, { $set: { activeDrawId: new ObjectId() } });

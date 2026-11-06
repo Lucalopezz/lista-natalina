@@ -2,7 +2,7 @@ import "server-only";
 import { MongoServerError, ObjectId, type ClientSession, type Db, type MongoClient } from "mongodb";
 import { cancelActiveReservations } from "../reservations/persistence";
 import { GroupError } from "./service";
-import type { Group, GroupChanges, GroupRepository, GroupTransaction, Member, Page } from "./types";
+import type { Group, GroupChanges, GroupReads, GroupRepository, GroupTransaction, Member, Page } from "./types";
 
 type GroupDocument = Omit<Group, "id" | "adminId" | "activeDrawId"> & { _id: ObjectId; adminId: ObjectId; activeDrawId: ObjectId | null };
 type MembershipDocument = { _id: ObjectId; groupId: ObjectId; userId: ObjectId; joinedAt: Date };
@@ -44,6 +44,7 @@ export function createMongoGroupRepository(db: Db, client: MongoClient): GroupRe
   const memberships = db.collection<MembershipDocument>("memberships");
   function unit(session: ClientSession): GroupTransaction {
     return {
+      ...readers(session),
       lock: async (id) => {
         // Todas as mutações disputam a mesma escrita antes de validar o snapshot.
         // Em conflito, withTransaction repete o callback e as permissões são relidas.
@@ -77,6 +78,46 @@ export function createMongoGroupRepository(db: Db, client: MongoClient): GroupRe
       },
     };
   }
+  function readers(session?: ClientSession): GroupReads {
+    return {
+      getForMember: (actor, id) => safe(async () => {
+        const documents = await groups.aggregate<GroupDocument>([
+          { $match: { _id: oid(id) } },
+          { $lookup: { from: "memberships", let: { group: "$_id" }, pipeline: [
+            { $match: { $expr: { $and: [{ $eq: ["$groupId", "$$group"] }, { $eq: ["$userId", oid(actor)] }] } } },
+            { $project: { _id: 1 } }, { $limit: 1 },
+          ], as: "access" } },
+          { $match: { "access.0": { $exists: true } } }, { $project: projection },
+        ], { session }).toArray();
+        return documents[0] ? entity(documents[0]) : null;
+      }),
+      listMembers: (groupId, cursor) => safe(async () => {
+        const documents = await memberships.aggregate<Member>([
+          { $match: { groupId: oid(groupId), ...(cursor ? { userId: { $gt: oid(cursor) } } : {}) } },
+          { $sort: { userId: 1 } }, { $limit: pageSize + 1 },
+          // A projeção ocorre dentro do lookup: senha/email nem entram no resultado.
+          { $lookup: { from: "user", localField: "userId", foreignField: "_id", pipeline: [{ $project: { name: 1 } }], as: "publicUser" } },
+          { $unwind: { path: "$publicUser", preserveNullAndEmptyArrays: true } },
+          { $project: { _id: 0, id: { $toString: "$userId" }, name: { $ifNull: ["$publicUser.name", "Conta indisponível"] } } },
+        ], { session }).toArray();
+        return page(documents, pageSize, (member) => member.id);
+      }),
+      searchCandidates: (groupId, query, cursor) => safe(async () => {
+        const literalPrefix = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const documents = await db.collection("user").aggregate<Member>([
+          { $match: { name: { $regex: `^${literalPrefix}`, $options: "i" }, ...(cursor ? { _id: { $gt: oid(cursor) } } : {}) } },
+          { $sort: { _id: 1 } },
+          { $lookup: { from: "memberships", let: { user: "$_id" }, pipeline: [
+            { $match: { $expr: { $and: [{ $eq: ["$groupId", oid(groupId)] }, { $eq: ["$userId", "$$user"] }] } } },
+            { $project: { _id: 1 } }, { $limit: 1 },
+          ], as: "alreadyMember" } },
+          { $match: { "alreadyMember.0": { $exists: false } } }, { $limit: 21 },
+          { $project: { _id: 0, id: { $toString: "$_id" }, name: 1 } },
+        ], { maxTimeMS: 2000, session }).toArray();
+        return page(documents, 20, (user) => user.id);
+      }),
+    };
+  }
   return {
     transaction: <T>(work: (transaction: GroupTransaction) => Promise<T>) => safe(async () => {
       const session = client.startSession();
@@ -88,17 +129,7 @@ export function createMongoGroupRepository(db: Db, client: MongoClient): GroupRe
         });
       } finally { await session.endSession(); }
     }),
-    getForMember: (actor, id) => safe(async () => {
-      const documents = await groups.aggregate<GroupDocument>([
-        { $match: { _id: oid(id) } },
-        { $lookup: { from: "memberships", let: { group: "$_id" }, pipeline: [
-          { $match: { $expr: { $and: [{ $eq: ["$groupId", "$$group"] }, { $eq: ["$userId", oid(actor)] }] } } },
-          { $project: { _id: 1 } }, { $limit: 1 },
-        ], as: "access" } },
-        { $match: { "access.0": { $exists: true } } }, { $project: projection },
-      ]).toArray();
-      return documents[0] ? entity(documents[0]) : null;
-    }),
+    ...readers(),
     listForMember: (actor, cursor, onlyDrawn = false) => safe(async () => {
       const documents = await memberships.aggregate<GroupDocument>([
         { $match: { userId: oid(actor), ...(cursor ? { groupId: { $lt: oid(cursor) } } : {}) } },
@@ -110,31 +141,6 @@ export function createMongoGroupRepository(db: Db, client: MongoClient): GroupRe
         ...(onlyDrawn ? [{ $limit: pageSize + 1 }] : []),
       ]).toArray();
       return page(documents.map(entity), pageSize, (group) => group.id);
-    }),
-    listMembers: (groupId, cursor) => safe(async () => {
-      const documents = await memberships.aggregate<Member>([
-        { $match: { groupId: oid(groupId), ...(cursor ? { userId: { $gt: oid(cursor) } } : {}) } },
-        { $sort: { userId: 1 } }, { $limit: pageSize + 1 },
-        // A projeção ocorre dentro do lookup: senha/email nem entram no resultado.
-        { $lookup: { from: "user", localField: "userId", foreignField: "_id", pipeline: [{ $project: { name: 1 } }], as: "publicUser" } },
-        { $unwind: { path: "$publicUser", preserveNullAndEmptyArrays: true } },
-        { $project: { _id: 0, id: { $toString: "$userId" }, name: { $ifNull: ["$publicUser.name", "Conta indisponível"] } } },
-      ]).toArray();
-      return page(documents, pageSize, (member) => member.id);
-    }),
-    searchCandidates: (groupId, query, cursor) => safe(async () => {
-      const literalPrefix = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const documents = await db.collection("user").aggregate<Member>([
-        { $match: { name: { $regex: `^${literalPrefix}`, $options: "i" }, ...(cursor ? { _id: { $gt: oid(cursor) } } : {}) } },
-        { $sort: { _id: 1 } },
-        { $lookup: { from: "memberships", let: { user: "$_id" }, pipeline: [
-          { $match: { $expr: { $and: [{ $eq: ["$groupId", oid(groupId)] }, { $eq: ["$userId", "$$user"] }] } } },
-          { $project: { _id: 1 } }, { $limit: 1 },
-        ], as: "alreadyMember" } },
-        { $match: { "alreadyMember.0": { $exists: false } } }, { $limit: 21 },
-        { $project: { _id: 0, id: { $toString: "$_id" }, name: 1 } },
-      ], { maxTimeMS: 2000 }).toArray();
-      return page(documents, 20, (user) => user.id);
     }),
   };
 }
