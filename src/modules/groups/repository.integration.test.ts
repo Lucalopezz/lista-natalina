@@ -157,6 +157,15 @@ describe("grupos no MongoDB real", () => {
     await service.remove(A, other.id, B);
     expect((await db.collection("reservations").findOne({ _id: inserted.insertedIds[2] }))?.status).toBe("cancelled");
   });
+  it("filtra amigos secretos antes de limitar a página de grupos", async () => {
+    const secret = await create("Ativo antigo", "secret_santa");
+    await db.collection("groups").updateOne({ _id: new ObjectId(secret.id) }, { $set: { activeDrawId: new ObjectId() } });
+    for (let i = 0; i < 26; i++) await create(`Convencional recente ${i}`);
+    const active = await service.drawnGroups(A);
+    expect(active.items.some((item) => item.id === secret.id)).toBe(true);
+    expect(active.items.every((item) => item.type === "secret_santa" && item.hasActiveDraw)).toBe(true);
+    expect((await service.drawnGroups(C)).items.some((item) => item.id === secret.id)).toBe(false);
+  });
   it("pagina membros e grupos sem limite total", async () => {
     const group = await create();
     const users = Array.from({ length: 26 }, (_, index) => ({ _id: new ObjectId(), name: `Convidado ${index}` }));

@@ -76,6 +76,12 @@ export function createGroupService(repository: GroupRepository) {
       const result = await repository.listForMember(userId, parsed.data.cursor);
       return { items: result.items.map(view), nextCursor: result.nextCursor };
     },
+    async drawnGroups(actor: string | null, query: unknown = {}) {
+      const userId = identity(actor), parsed = groupPageSchema.safeParse(query);
+      if (!parsed.success) throw new GroupError("invalid", "Página de grupos inválida.");
+      const result = await repository.listForMember(userId, parsed.data.cursor, true);
+      return { items: result.items.map(view), nextCursor: result.nextCursor };
+    },
     async get(actor: string | null, id: unknown, query: unknown = {}) {
       const userId = identity(actor);
       const groupId = target(id);

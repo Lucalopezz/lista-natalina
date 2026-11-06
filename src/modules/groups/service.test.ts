@@ -92,6 +92,10 @@ describe("regras dos grupos", () => {
     await service.transfer(admin, id, member);
     expect(tx.patch).toHaveBeenCalledWith(id, { adminId: member, updatedAt: expect.any(Date) });
   });
+  it("lista amigos secretos ativos com filtro no repositório", async () => {
+    await service.drawnGroups(admin);
+    expect(reads.listForMember).toHaveBeenCalledWith(admin, undefined, true);
+  });
   it("não membro recebe not_found ao tentar mutações", async () => {
     await expect(service.add(stranger, id, member)).rejects.toMatchObject({ code: "not_found" });
     await expect(service.leave(stranger, id)).rejects.toMatchObject({ code: "not_found" });

@@ -11,6 +11,7 @@ export type WishlistView = {
   gifts: GroupGiftView[];
   nextCursor: string | null;
 };
+export type SecretSantaView = { state: "pending"; group: WishlistView["group"] } | { state: "drawn"; wishlist: WishlistView };
 export type ReservationActionState = { message: string };
 
 /** A unidade mantém autorização e dados no mesmo snapshot; mutações disputam

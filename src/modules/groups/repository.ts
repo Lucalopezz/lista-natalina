@@ -99,12 +99,15 @@ export function createMongoGroupRepository(db: Db, client: MongoClient): GroupRe
       ]).toArray();
       return documents[0] ? entity(documents[0]) : null;
     }),
-    listForMember: (actor, cursor) => safe(async () => {
+    listForMember: (actor, cursor, onlyDrawn = false) => safe(async () => {
       const documents = await memberships.aggregate<GroupDocument>([
         { $match: { userId: oid(actor), ...(cursor ? { groupId: { $lt: oid(cursor) } } : {}) } },
-        { $sort: { groupId: -1 } }, { $limit: pageSize + 1 },
-        { $lookup: { from: "groups", localField: "groupId", foreignField: "_id", pipeline: [{ $project: projection }], as: "group" } },
+        { $sort: { groupId: -1 } }, ...(!onlyDrawn ? [{ $limit: pageSize + 1 }] : []),
+        { $lookup: { from: "groups", localField: "groupId", foreignField: "_id", pipeline: [...(onlyDrawn ? [{ $match: { type: "secret_santa", activeDrawId: { $type: "objectId" } } }] : []), { $project: projection }], as: "group" } },
         { $unwind: "$group" }, { $replaceRoot: { newRoot: "$group" } },
+        // No filtro de sorteios, limitar antes do lookup perderia grupos ativos
+        // antigos por causa de grupos convencionais recentes na mesma página.
+        ...(onlyDrawn ? [{ $limit: pageSize + 1 }] : []),
       ]).toArray();
       return page(documents.map(entity), pageSize, (group) => group.id);
     }),

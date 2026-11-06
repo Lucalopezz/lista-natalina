@@ -23,7 +23,7 @@ export async function ensureReservationIndexes(db: Db) {
     db.collection("reservations").createIndex({ groupId: 1, ownerId: 1, status: 1 }),
     db.collection("reservations").createIndex({ giftId: 1, status: 1 }),
     // A leitura da política exige unicidade do resultado individual. Preparar
-    // estes índices não realiza sorteio; a escrita das edições pertence à Fase 6.
+    // estes índices não realiza sorteio; o serviço de sorteio compartilha as mesmas restrições.
     db.collection("draws").createIndex({ groupId: 1 }, { unique: true, partialFilterExpression: { status: "active" } }),
     db.collection("assignments").createIndex({ drawId: 1, giverId: 1 }, { unique: true }),
     db.collection("assignments").createIndex({ drawId: 1, recipientId: 1 }, { unique: true }),

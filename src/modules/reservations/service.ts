@@ -1,7 +1,7 @@
 import { giftIdSchema } from "../gifts/validation";
 import { toGiftView } from "../gifts/dto";
 import { reservationPathSchema, wishlistPathSchema, wishlistQuerySchema } from "./validation";
-import type { AccessGroup, ReservationRepository, ReservationUnit, WishlistView } from "./types";
+import type { AccessGroup, ReservationRepository, ReservationUnit, SecretSantaView, WishlistView } from "./types";
 
 export class ReservationError extends Error {
   constructor(public readonly code: "unauthorized" | "not_found" | "invalid" | "forbidden" | "unavailable", message: string) { super(message); }
@@ -28,12 +28,31 @@ export function createReservationService(repository: ReservationRepository) {
     // O repositório só lê a atribuição da sessão e exige edição válida/atual.
     if (!group.activeDrawId || await unit.recipient(group, actor) !== owner) notFound();
   }
+  /** Chamadores já autorizaram o dono no mesmo snapshot. Centralizar aqui evita
+   * consultar resultado em uma transação e disponibilidade em outra edição. */
+  async function readWishlist(unit: ReservationUnit, group: AccessGroup, user: string, ownerId: string, cursor?: string): Promise<WishlistView> {
+    const owner = await unit.profile(ownerId);
+    if (!owner) notFound();
+    const result = await unit.listGifts(owner.id, cursor);
+    const gifts = result.gifts.map(toGiftView);
+    // O dono nem consulta reservations. Ausência dos campos no payload é a
+    // garantia: ocultar só o indicador visual ainda revelaria a surpresa.
+    if (user !== owner.id && gifts.length) {
+      const rows = await unit.availability(group.id, group.type === "secret_santa" ? group.activeDrawId : null, gifts.map((gift) => gift.id));
+      const byGift = new Map(rows.map((row) => [row.giftId, row.reservedBy]));
+      return {
+        group: { id: group.id, name: group.name, type: group.type }, owner: { id: owner.id, name: owner.name }, nextCursor: result.nextCursor,
+        gifts: gifts.map((gift) => ({ ...gift, availability: byGift.has(gift.id) ? "reserved" : "available", canCancel: byGift.get(gift.id) === user })),
+      };
+    }
+    return { group: { id: group.id, name: group.name, type: group.type }, owner: { id: owner.id, name: owner.name }, gifts, nextCursor: result.nextCursor };
+  }
   async function mutate(operation: "reserve" | "cancel", actor: string | null, groupId: unknown, ownerId: unknown, giftId: unknown) {
     const user = identity(actor);
     const path = reservationPathSchema.safeParse({ groupId, ownerId, giftId });
     if (!path.success) notFound();
     const target = path.data;
-    await repository.transaction(async (unit) => {
+    return repository.transaction(async (unit) => {
       // As mutações do grupo e as reservas disputam o mesmo documento. Depois
       // desse lock lógico, cada tentativa transacional relê as permissões atuais.
       const group = await groupFor(unit, user, target.groupId, true);
@@ -47,6 +66,7 @@ export function createReservationService(repository: ReservationRepository) {
       if (operation === "reserve") {
         await unit.insert({ groupId: group.id, giftId: gift.id, ownerId: gift.ownerId, reservedBy: user, drawId, createdAt: new Date() });
       } else if (!await unit.cancel(group.id, drawId, gift.id, user)) notFound();
+      return { groupType: group.type };
     });
   }
   return {
@@ -61,6 +81,20 @@ export function createReservationService(repository: ReservationRepository) {
         return { recipientId: recipientId && await unit.isMember(group.id, recipientId) ? recipientId : null };
       });
     },
+    async secretSanta(actor: string | null, groupId: unknown, query: unknown = {}): Promise<SecretSantaView> {
+      const user = identity(actor), id = giftIdSchema.safeParse(groupId), page = wishlistQuerySchema.safeParse(query);
+      if (!id.success) notFound();
+      if (!page.success) throw new ReservationError("invalid", "Página de presentes inválida.");
+      return repository.transaction(async (unit) => {
+        const group = await groupFor(unit, user, id.data);
+        if (group.type !== "secret_santa") notFound();
+        if (!group.activeDrawId) return { state: "pending", group: { id: group.id, name: group.name, type: group.type } };
+        // Sem parâmetro giverId: somente a sessão escolhe qual atribuição ler.
+        const recipient = await unit.recipient(group, user);
+        if (!recipient || !await unit.isMember(group.id, recipient)) notFound();
+        return { state: "drawn", wishlist: await readWishlist(unit, group, user, recipient, page.data.cursor) };
+      });
+    },
     async list(actor: string | null, groupId: unknown, ownerId: unknown, query: unknown = {}): Promise<WishlistView> {
       const user = identity(actor);
       const path = wishlistPathSchema.safeParse({ groupId, ownerId });
@@ -70,21 +104,7 @@ export function createReservationService(repository: ReservationRepository) {
       return repository.transaction(async (unit) => {
         const group = await groupFor(unit, user, path.data.groupId);
         await authorize(unit, group, user, path.data.ownerId);
-        const owner = await unit.profile(path.data.ownerId);
-        if (!owner) notFound();
-        const result = await unit.listGifts(owner.id, page.data.cursor);
-        const gifts = result.gifts.map(toGiftView);
-        // O dono nem consulta reservations. Ausência dos campos no payload é a
-        // garantia: ocultar só o indicador visual ainda revelaria a surpresa.
-        if (user !== owner.id && gifts.length) {
-          const rows = await unit.availability(group.id, group.type === "secret_santa" ? group.activeDrawId : null, gifts.map((gift) => gift.id));
-          const byGift = new Map(rows.map((row) => [row.giftId, row.reservedBy]));
-          return {
-            group: { id: group.id, name: group.name, type: group.type }, owner: { id: owner.id, name: owner.name }, nextCursor: result.nextCursor,
-            gifts: gifts.map((gift) => ({ ...gift, availability: byGift.has(gift.id) ? "reserved" : "available", canCancel: byGift.get(gift.id) === user })),
-          };
-        }
-        return { group: { id: group.id, name: group.name, type: group.type }, owner: { id: owner.id, name: owner.name }, gifts, nextCursor: result.nextCursor };
+        return readWishlist(unit, group, user, path.data.ownerId, page.data.cursor);
       });
     },
     reserve: (actor: string | null, groupId: unknown, ownerId: unknown, giftId: unknown) => mutate("reserve", actor, groupId, ownerId, giftId),

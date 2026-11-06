@@ -75,6 +75,29 @@ describe("listas e reservas por contexto", () => {
     expect(await service.context(a, groupId)).toEqual({ recipientId: b });
     expect(unit.recipient).toHaveBeenCalledWith(expect.anything(), a);
   });
+  it("meu amigo secreto pendente não consulta lista ou disponibilidade", async () => {
+    unit.getGroup.mockResolvedValue({ ...group, type: "secret_santa" });
+    expect(await service.secretSanta(a, groupId)).toEqual({ state: "pending", group: { id: groupId, name: "Família", type: "secret_santa" } });
+    expect(unit.profile).not.toHaveBeenCalled(); expect(unit.availability).not.toHaveBeenCalled();
+  });
+  it("meu resultado e disponibilidade pertencem ao mesmo snapshot da sessão", async () => {
+    unit.getGroup.mockResolvedValue({ ...group, type: "secret_santa", activeDrawId: drawId });
+    const result = await service.secretSanta(a, groupId, { giverId: c });
+    expect(result).toMatchObject({ state: "drawn", wishlist: { owner: { id: b, name: "Bruna" }, gifts: [{ availability: "available" }] } });
+    expect(unit.recipient).toHaveBeenCalledWith(expect.anything(), a);
+    expect(JSON.stringify(result)).not.toContain(drawId);
+  });
+  it("resultado sem atribuição válida ou destinatário fora do grupo falha fechado", async () => {
+    unit.getGroup.mockResolvedValue({ ...group, type: "secret_santa", activeDrawId: drawId });
+    unit.recipient.mockResolvedValue(null);
+    await expect(service.secretSanta(a, groupId)).rejects.toMatchObject({ code: "not_found" });
+    unit.recipient.mockResolvedValue(c); unit.isMember.mockImplementation(async (_g, user) => user !== c);
+    await expect(service.secretSanta(a, groupId)).rejects.toMatchObject({ code: "not_found" });
+  });
+  it("meu resultado não existe em convencional ou sem autenticação", async () => {
+    await expect(service.secretSanta(a, groupId)).rejects.toMatchObject({ code: "not_found" });
+    await expect(service.secretSanta(null, groupId)).rejects.toMatchObject({ code: "unauthorized" });
+  });
   it("reserva usa dono/autor/edição derivados no servidor e coordena os recursos", async () => {
     await service.reserve(a, groupId, b, giftId);
     expect(unit.lockGroup).toHaveBeenCalledWith(groupId); expect(unit.lockGift).toHaveBeenCalledWith(giftId);

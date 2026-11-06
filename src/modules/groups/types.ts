@@ -27,7 +27,7 @@ export interface GroupTransaction {
 export interface GroupRepository {
   transaction<T>(work: (unit: GroupTransaction) => Promise<T>): Promise<T>;
   getForMember(actor: string, id: string): Promise<Group | null>;
-  listForMember(actor: string, cursor?: string): Promise<Page<Group>>;
+  listForMember(actor: string, cursor?: string, onlyDrawn?: boolean): Promise<Page<Group>>;
   listMembers(groupId: string, cursor?: string): Promise<Page<Member>>;
   searchCandidates(groupId: string, query: string, cursor?: string): Promise<Page<Member>>;
 }
