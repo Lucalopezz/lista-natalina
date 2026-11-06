@@ -16,9 +16,9 @@ function json(body: unknown, status: number, headers?: Headers) {
 }
 
 /** Limita o corpo de verdade, inclusive se o cliente omitir/forjar Content-Length. */
-async function readBody(request: Request) {
+async function readBody(request: Request, allowEmpty = false) {
   const reader = request.body?.getReader();
-  if (!reader) throw new Error("Missing body");
+  if (!reader) { if (allowEmpty) return {}; throw new Error("Missing body"); }
   const decoder = new TextDecoder();
   let size = 0;
   let text = "";
@@ -30,12 +30,13 @@ async function readBody(request: Request) {
       if (size > 8192) { await reader.cancel(); throw new Error("Body too large"); }
       text += decoder.decode(value, { stream: true });
     }
-    return JSON.parse(text + decoder.decode());
+    const body = text + decoder.decode();
+    return allowEmpty && !body.length ? {} : JSON.parse(body);
   } finally { reader.releaseLock(); }
 }
 
 /**
- * Expõe somente o contrato desta fase. A validação ocorre aqui para proteger também
+ * Expõe somente o contrato de autenticação da aplicação. A validação ocorre aqui para proteger também
  * chamadas diretas, e não só formulários. Cookies da biblioteca são preservados,
  * mas tokens, documentos de sessão e campos internos não são serializados ao cliente.
  */
@@ -51,15 +52,22 @@ export function createAuthHttpHandler(auth: Auth) {
     }
 
     let safeRequest = request;
-    if (path === "sign-up/email" || path === "sign-in/email") {
+    if (request.method === "POST") {
       try {
+        // Logout também precisa do limite de bytes. Seu corpo é opcional e não
+        // pode injetar token, usuário ou redirect no contrato da biblioteca.
+        const body = await readBody(request, path === "sign-out");
         const schema = path === "sign-up/email" ? signUpSchema : signInSchema;
-        const parsed = schema.safeParse(await readBody(request));
+        const parsed = path === "sign-out" ? { success: true as const, data: {} } : schema.safeParse(body);
         if (!parsed.success) return json({ message: messages.invalid }, 400);
         // Reconstrói o body com campos permitidos. Identidade, papel, callbackURL e
         // qualquer privilégio arbitrário enviado pelo cliente são descartados.
+        const headers = new Headers(request.headers);
+        headers.set("content-type", "application/json");
+        // O corpo foi normalizado: não encaminhar um tamanho original ou forjado.
+        headers.delete("content-length");
         safeRequest = new Request(request.url, {
-          method: "POST", headers: request.headers, body: JSON.stringify(parsed.data),
+          method: "POST", headers, body: JSON.stringify(parsed.data),
         });
       } catch { return json({ message: messages.invalid }, 400); }
     }
