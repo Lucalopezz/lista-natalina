@@ -2,3 +2,9 @@ allowBuilds:
   esbuild: true
 minimumReleaseAgeExclude:
   - vite@8.3.6
+overrides:
+  # O parser ainda depende de minimatch 10, afetado por GHSA-g3hv-75wg-m249.
+  # Limitamos a troca a esse consumidor de desenvolvimento, cuja API usada é
+  # minimatch(path, pattern, { dot: true }), preservada na versão corrigida.
+  # Remover quando typescript-estree adotar uma versão corrigida diretamente.
+  '@typescript-eslint/typescript-estree>minimatch': 11.0.1
