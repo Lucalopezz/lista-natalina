@@ -142,6 +142,21 @@ describe("grupos no MongoDB real", () => {
     const raw = await db.collection("groups").findOne({ _id: new ObjectId(group.id) });
     expect(await db.collection("memberships").findOne({ groupId: raw!._id, userId: raw!.adminId })).toBeTruthy();
   });
+  it("saída/remoção cancela reservas como dono e reservante apenas no grupo afetado", async () => {
+    const group = await create(); await service.add(A, group.id, B);
+    const other = await create(); await service.add(A, other.id, B);
+    const rows = [
+      { groupId: new ObjectId(group.id), giftId: new ObjectId(), ownerId: b, reservedBy: a, status: "active" },
+      { groupId: new ObjectId(group.id), giftId: new ObjectId(), ownerId: a, reservedBy: b, status: "active" },
+      { groupId: new ObjectId(other.id), giftId: new ObjectId(), ownerId: b, reservedBy: a, status: "active" },
+    ];
+    const inserted = await db.collection("reservations").insertMany(rows);
+    await service.leave(B, group.id);
+    expect(await db.collection("reservations").countDocuments({ groupId: new ObjectId(group.id), status: "active" })).toBe(0);
+    expect((await db.collection("reservations").findOne({ _id: inserted.insertedIds[2] }))?.status).toBe("active");
+    await service.remove(A, other.id, B);
+    expect((await db.collection("reservations").findOne({ _id: inserted.insertedIds[2] }))?.status).toBe("cancelled");
+  });
   it("pagina membros e grupos sem limite total", async () => {
     const group = await create();
     const users = Array.from({ length: 26 }, (_, index) => ({ _id: new ObjectId(), name: `Convidado ${index}` }));

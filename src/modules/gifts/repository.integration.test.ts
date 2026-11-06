@@ -11,7 +11,7 @@ if (!/^mongodb:\/\/127\.0\.0\.1:\d+\/lista_natalina_test\?directConnection=true$
 const client = new MongoClient(uri);
 // Cada suite usa seu próprio banco: o teardown de auth não interfere em gifts.
 const db = client.db("lista_natalina_test_gifts");
-const service = createGiftService(createMongoGiftRepository(db));
+const service = createGiftService(createMongoGiftRepository(db, client));
 const owner = new ObjectId().toHexString();
 const other = new ObjectId().toHexString();
 const input = { name: "Livro", description: "Receitas em família", productUrl: "https://example.test/book", imageUrl: "https://example.test/book.png" };
@@ -81,6 +81,15 @@ describe("persistência e autorização dos presentes", () => {
     expect((await service.get(owner, gift.id)).imageUrl).toBe("");
     const raw = await db.collection("gifts").findOne({ _id: new ObjectId(gift.id) });
     expect(raw?.imageUrl).toBe("");
+  });
+  it("excluir presente cancela reservas em todos os grupos na mesma operação", async () => {
+    const gift = await service.create(owner, input);
+    const groupIds = [new ObjectId(), new ObjectId()];
+    await db.collection("reservations").insertMany(groupIds.map((groupId) => ({ groupId, giftId: new ObjectId(gift.id), ownerId: new ObjectId(owner), reservedBy: new ObjectId(other), status: "active" })));
+    await service.remove(owner, gift.id);
+    const reservations = await db.collection("reservations").find({ giftId: new ObjectId(gift.id) }).toArray();
+    expect(reservations).toHaveLength(2);
+    expect(reservations.every((row) => row.status === "cancelled" && row.cancelledAt instanceof Date)).toBe(true);
   });
   it("usa índice compatível com filtro de dono e paginação", async () => {
     const indexes = await db.collection("gifts").indexes();

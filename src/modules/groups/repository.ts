@@ -1,5 +1,6 @@
 import "server-only";
 import { MongoServerError, ObjectId, type ClientSession, type Db, type MongoClient } from "mongodb";
+import { cancelActiveReservations } from "../reservations/persistence";
 import { GroupError } from "./service";
 import type { Group, GroupChanges, GroupRepository, GroupTransaction, Member, Page } from "./types";
 
@@ -63,8 +64,14 @@ export function createMongoGroupRepository(db: Db, client: MongoClient): GroupRe
         const data = { ...other, ...(adminId ? { adminId: oid(adminId) } : {}) };
         await groups.updateOne({ _id: oid(id) }, { $set: data }, { session });
       },
-      removeMember: async (groupId, userId) => { await memberships.deleteOne({ groupId: oid(groupId), userId: oid(userId) }, { session }); },
+      removeMember: async (groupId, userId) => {
+        await memberships.deleteOne({ groupId: oid(groupId), userId: oid(userId) }, { session });
+        // Quem sai perde reservas como comprador e como dono neste grupo. Outros
+        // grupos continuam independentes; ownerId veio do presente na criação.
+        await cancelActiveReservations(db, { groupId: oid(groupId), $or: [{ reservedBy: oid(userId) }, { ownerId: oid(userId) }] }, session);
+      },
       deleteGroup: async (id) => {
+        await cancelActiveReservations(db, { groupId: oid(id) }, session);
         await memberships.deleteMany({ groupId: oid(id) }, { session });
         await groups.deleteOne({ _id: oid(id) }, { session });
       },
