@@ -1,10 +1,12 @@
 # Publicação na Vercel
 
-Este guia prepara a publicação do checkout atual. Nenhum projeto, domínio ou deployment foi criado nesta entrega. O banco configurado localmente já é produção; testes automatizados continuam usando MongoDB descartável.
+Aplicação publicada em https://lista-natalina.vercel.app, no projeto lista-natalina da equipe lucas-projects-36c39d5f. Por decisão do usuário, a publicação é diretamente em produção, sem preview. O banco configurado localmente já é produção; testes automatizados continuam usando MongoDB descartável.
+
+Verificação em 06/11/2026: build/TypeScript aprovados na Vercel, páginas pública/login/cadastro com HTTP 200 e dashboard anônimo redirecionando para login. O usuário ajustou Network Access no Atlas; a inicialização da autenticação então conectou ao banco e get-session retornou 401 para a sessão anônima, conforme esperado. Não foram criadas contas de teste nem executados fluxos de escrita no banco real.
 
 ## Configuração do projeto
 
-Importe o repositório na Vercel somente quando a publicação estiver autorizada. A integração Git pode publicar automaticamente os próximos pushes; escolha conscientemente a branch de produção e os ambientes de preview.
+O checkout já está vinculado à Vercel em .vercel/, ignorado pelo Git. Deploys automáticos por Git estão desabilitados em vercel.json; pushes continuam executando o CI. Para publicar uma atualização, use `vercel deploy --prod`. Não execute `vercel deploy` sem --prod, pois esse comando cria preview.
 
 | Configuração | Valor |
 | --- | --- |
@@ -16,26 +18,26 @@ Importe o repositório na Vercel somente quando a publicação estiver autorizad
 | Build Command | pnpm build |
 | Output Directory | Padrão do Next.js |
 
-Não é necessário adicionar vercel.json, servidor permanente ou disco persistente. O runtime Node.js das rotas privadas/Actions permite usar o driver MongoDB e transações. Build valida a aplicação sem abrir conexão com o banco.
+vercel.json contém somente a desativação de deploys automáticos por Git. .vercelignore exclui variáveis privadas, dependências e artefatos locais do upload. O runtime Node.js das rotas privadas/Actions permite usar o driver MongoDB e transações. Build valida a aplicação sem abrir conexão com o banco. Não há servidor permanente ou disco persistente.
 
 O workflow [validacao.yml](../.github/workflows/validacao.yml) executa lint, tipos, unidade, build, integração e navegador, sem segredos de produção. As ações estão fixadas por SHA e usam Node.js 24. Confira o CI do commit escolhido antes de promovê-lo; este workflow não publica a aplicação nem configura uma barreira automática para deployments da integração Git.
 
-## Variáveis privadas por ambiente
+## Variáveis privadas de produção
 
-Configure pelo painel da Vercel, sem copiar valores para issues, logs ou documentação. Nenhuma delas deve receber prefixo NEXT_PUBLIC_. Preserve o .env local existente.
+As quatro variáveis estão configuradas somente em Production. Use o painel ou `vercel env update` para alterá-las, sem copiar valores para issues, logs ou documentação. Nenhuma delas deve receber prefixo NEXT_PUBLIC_. Preserve o .env local existente.
 
-| Variável | Produção | Preview |
-| --- | --- | --- |
-| DATABASE_URL | URI privada do MongoDB de produção | URI de banco separado, com credencial própria |
-| DATABASE_NAME | lista-natalina | Nome explícito do banco de preview |
-| BETTER_AUTH_SECRET | Segredo aleatório de pelo menos 32 caracteres | Outro segredo, diferente do de produção |
-| BETTER_AUTH_URL | Origem HTTPS exata usada pelos usuários | Origem HTTPS exata do preview estável |
+| Variável | Valor configurado |
+| --- | --- |
+| DATABASE_URL | URI privada do MongoDB de produção, armazenada como Secret |
+| DATABASE_NAME | lista-natalina |
+| BETTER_AUTH_SECRET | Segredo aleatório, armazenado como Secret |
+| BETTER_AUTH_URL | https://lista-natalina.vercel.app |
 
-DATABASE_NAME substitui o nome presente na URI. Defini-lo explicitamente evita o banco implícito test. Não reutilize o banco de produção em preview: cadastro, exclusão, saída e sorteio são operações reais mesmo quando a URL parece temporária.
+DATABASE_NAME substitui o nome presente na URI. Defini-lo explicitamente evita o banco implícito test. Cadastro, exclusão, saída e sorteio na URL publicada são operações reais.
 
 BETTER_AUTH_URL contém somente a origem, sem caminho, query ou barra final, por exemplo https://lista.example.com. O servidor compara Origin com essa configuração. Se a pessoa abrir outra URL/alias, as operações podem ser recusadas. Prefira um endereço canônico e configure redirecionamento dos demais após definir o domínio.
 
-Previews com URLs diferentes não recebem confiança automática. Para um preview funcional, escolha um endereço estável e configure sua origem exata no ambiente correspondente; confirme que ele serve o deployment pretendido. Não troque a verificação por wildcard nem derive confiança do header Host. Se o domínio mudar, atualize a variável e gere novo deployment.
+Não troque a verificação de origem por wildcard nem derive confiança do header Host. Se o domínio mudar, atualize BETTER_AUTH_URL e gere novo deployment.
 
 Cookies usam HttpOnly, SameSite=Lax e Secure em HTTPS. Sessões duram sete dias e são consultadas no banco, sem cache de sessão em cookie. Trocar segredos/origem pode afetar sessões existentes e exige validação após a mudança.
 
@@ -69,7 +71,7 @@ Na revisão de 06/11/2026, uma dependência de lint, minimatch 10, foi substitu�
 
 ## Conferência do deployment autorizado
 
-Primeiro use preview com banco isolado. Verifique cadastro, login, logout, lista pessoal, inclusão no grupo, reserva/cancelamento e sorteio com pelo menos três contas fictícias nesse banco. Confira também saída bloqueada durante sorteio ativo, transferência e invalidação/refazer com cancelamento das reservas da edição.
+O usuário optou por publicação direta, sem preview. Os fluxos de cadastro, login, logout, lista pessoal, grupos, reservas e sorteios são cobertos pelos testes isolados, de integração e navegador antes da publicação. Não execute esses runners contra a URL ou o banco de produção.
 
 No navegador, valide celular e teclado, foco das confirmações, links externos e imagem padrão. Confira respostas privadas com Cache-Control no-store e os cabeçalhos definidos em next.config.ts. O layout privado orienta indexadores com noindex/nofollow; a proteção real continua sendo a sessão no servidor.
 

@@ -105,7 +105,7 @@ Replica set/Atlas é necessário. Operações usam readConcern snapshot e writeC
 
 Testes ficam junto dos módulos. Serviços recebem repositórios substituíveis para testes isolados; integração usa MongoDB real descartável com replica set; E2E usa sessões independentes em desktop/celular. O runner valida URI local de testes, sobrescreve variáveis e nunca usa o banco configurado de produção para escrita automatizada.
 
-Conexão é lazy, com promessa compartilhada por instância, pool máximo de dez conexões e recuperação após falha inicial. Build não exige banco. Vercel usa um projeto Next.js/Node.js, sem processo permanente nem armazenamento local persistente. Previews exigem banco separado e origem/segredo definidos por ambiente; deploy ainda não realizado.
+Conexão é lazy, com promessa compartilhada por instância, pool máximo de dez conexões e recuperação após falha inicial. Build não exige banco. Produção usa um projeto Next.js/Node.js 24 na Vercel, sem processo permanente nem armazenamento local persistente. Por decisão do usuário, não há preview: publicações são feitas pela CLI com --prod, com variáveis somente em Production e deploys automáticos por Git desativados.
 
 ## Decisões ainda abertas
 

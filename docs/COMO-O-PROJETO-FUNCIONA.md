@@ -14,7 +14,7 @@ O projeto é uma aplicação **full-stack**: as páginas e o código que acessa 
 | Compartilhamento e reservas | Contexto obrigatório e disponibilidade por grupo |
 | Amigo secreto | Mínimo de três pessoas, resultado privado, novo sorteio e invalidação |
 
-A configuração e o procedimento de publicação estão no [guia da Vercel](DEPLOY.md); a aplicação ainda não foi publicada. Edição de perfil e política de exclusão de conta/retenção exigem definição própria. O histórico de implementação fica separado dos guias atuais em `docs/historico`.
+A configuração e o procedimento de publicação estão no [guia da Vercel](DEPLOY.md); produção está em https://lista-natalina.vercel.app, sem preview. Edição de perfil e política de exclusão de conta/retenção exigem definição própria. O histórico de implementação fica separado dos guias atuais em `docs/historico`.
 
 A imagem de um presente é opcional. Nome, descrição e link do produto continuam obrigatórios. Não há confirmação de email nem recuperação de senha, conforme a definição do projeto.
 

@@ -2,6 +2,8 @@
 
 Aplicação para organizar listas de presentes, reunir família e amigos e realizar amigo secreto. Desenvolvida com Next.js App Router, TypeScript, MongoDB e Tailwind CSS, com prioridade para celular e uma interface simples para pessoas com diferentes níveis de familiaridade com tecnologia.
 
+Produção: https://lista-natalina.vercel.app
+
 ## Funcionalidades
 
 - Cadastro, login, logout e sessão persistida.
@@ -94,7 +96,7 @@ O ícone fonte está em `src/app/icon.svg`. Para regenerar PNGs/ICO: `node scrip
 
 ## Vercel
 
-Projeto único Next.js/Node.js 24. Instalação `pnpm install --frozen-lockfile`, build `pnpm build` e saída padrão do framework. O [guia de publicação](docs/DEPLOY.md) explica origem HTTPS, variáveis por ambiente, banco separado para preview e verificação do deployment. Deploy ainda não realizado.
+Projeto único Next.js/Node.js 24, publicado diretamente em produção pela CLI. Instalação `pnpm install --frozen-lockfile`, build `pnpm build` e saída padrão do framework. Não há preview neste projeto; deploys automáticos por Git estão desabilitados em `vercel.json`. Para atualizar: `vercel deploy --prod`. O [guia de publicação](docs/DEPLOY.md) detalha a configuração.
 
 Não há dependência de processo permanente nem armazenamento local persistente. O pool MongoDB tem máximo de dez conexões por instância; múltiplas Functions têm pools distintos. Escolha uma região próxima ao banco e dimensione permissões/rede/conexões para a concorrência esperada.
 

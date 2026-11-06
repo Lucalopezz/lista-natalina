@@ -18,7 +18,7 @@ Fontes: instruções atuais do usuário; [regras de negócio](docs/REGRAS-DE-NEG
 - Sorteio mínimo de três, resultado individual, novo sorteio e invalidação com cancelamento transacional das reservas da edição.
 - Dashboard com resultados ativos, páginas responsivas e testes desktop/celular.
 - Revisão de segurança: consultas de membros/candidatos em snapshot autorizado, limite/normalização do logout, cabeçalhos de segurança e orientação noindex nas páginas privadas.
-- Preparação de publicação: Node.js 24.x no manifesto, CI com ações fixadas por SHA e [guia da Vercel](docs/DEPLOY.md). Sem deploy realizado.
+- Publicação direta pela CLI em https://lista-natalina.vercel.app, projeto lista-natalina/equipe lucas-projects-36c39d5f. Node.js 24.x e variáveis somente em Production. Sem preview; git.deploymentEnabled=false impede publicações automáticas.
 
 ## Mapa do código
 
@@ -64,13 +64,15 @@ Banco configurado é **produção**, nome lista-natalina, conforme definição d
 
 Driver oficial server-only, conexão lazy e promessa compartilhada por instância, pool máximo dez, recuperação após falha inicial. Build não abre banco. Índices idempotentes na inicialização dos serviços; várias Functions têm pools distintos.
 
-Verificação da revisão final: 203 testes isolados, 79 integração e 20 E2E; lint, tipos, build e instalação frozen aprovados. Testes de segurança e Escape/foco passaram em desktop/celular. Auditoria completa sem vulnerabilidades conhecidas após override de minimatch restrito ao parser de desenvolvimento. Comandos locais rodaram no Node.js 22.23.3 disponível; CI usa 24 e seu resultado remoto é informado na entrega. Não houve testes automatizados no banco real nem deploy. Veja o [registro da revisão](docs/historico/revisao-final.md) para evidências e limites.
+Verificação da revisão final: 203 testes isolados, 79 integração e 20 E2E; lint, tipos, build e instalação frozen aprovados. Testes de segurança e Escape/foco passaram em desktop/celular. Auditoria completa sem vulnerabilidades conhecidas após override de minimatch restrito ao parser de desenvolvimento. Comandos locais rodaram no Node.js 22.23.3 disponível; CI com Node.js 24 foi aprovado. Veja o [registro da revisão](docs/historico/revisao-final.md) para evidências e limites.
+
+Deploy dpl_682ySFPRpgNPdzWqBmp5F3bm3Qr6, commit 477e1fb, build/TypeScript aprovados na Vercel. HTTP público: /, /entrar e /cadastro retornam 200; /dashboard anônimo redireciona 307 para /entrar. Inicialmente, MongoDB na Vercel esgotava o tempo de conexão; o usuário ajustou Network Access no Atlas e /api/auth/get-session passou a retornar 401 com a mensagem anônima esperada. A inicialização da autenticação abriu conexão e preparou índices idempotentes. Nenhuma conta/fixture criada no banco real; login com conta real e demais operações autenticadas não foram exercitados em produção.
 
 Servidor local em http://localhost:3000 foi iniciado nesta sessão; verificar disponibilidade antes de prometer acesso. Ele usa a configuração real; os runners usam outro servidor/banco.
 
 ## Continuidade
 
-Revisão final de segurança, acessibilidade, integração e preparação de deploy autorizada pelo avanço do usuário, concluída com commits/push na continuidade desta sessão. Próximo trabalho é publicação e validação no ambiente Vercel, mediante autorização própria. Não iniciar deploy automaticamente.
+O usuário autorizou a CLI para publicar diretamente em produção, sem preview e com configuração simples. Publicação e conectividade MongoDB/Vercel verificadas. Publicações seguintes usam vercel deploy --prod; pushes não publicam automaticamente. Não fazer testes de escrita em produção.
 
 Edição de perfil, exclusão de conta e retenção de histórico continuam pendentes de definição. Mínimo, senha/sessão, ausência de email/recuperação e encerramento pelo último admin já estão definidos.
 
