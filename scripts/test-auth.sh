@@ -3,19 +3,24 @@ set -euo pipefail
 # Usa exclusivamente um MongoDB novo em tmpfs. Nunca carrega .env nem usa DATABASE_URL.
 mode="${1:-integration}"
 container="lista-natalina-tests-$$"
+container_id=""
 server_pid=""
 server_log="$(mktemp)"
 cleanup() {
   if [ -n "$server_pid" ]; then kill "$server_pid" 2>/dev/null || true; wait "$server_pid" 2>/dev/null || true; fi
-  docker stop "$container" >/dev/null 2>&1 || true
-  docker rm "$container" >/dev/null 2>&1 || true
+  # Só limpamos o ID devolvido pela criação bem-sucedida desta execução. Se o
+  # nome colidir e docker run falhar, não podemos remover o container existente.
+  if [ -n "$container_id" ]; then
+    docker stop "$container_id" >/dev/null 2>&1 || true
+    docker rm "$container_id" >/dev/null 2>&1 || true
+  fi
   rm -- "$server_log"
 }
 trap cleanup EXIT INT TERM
 # tmpfs reserva capacidade em memória, sem ocupar HD. 1 GiB também comporta
 # a margem de espaço para índices de versões MongoDB que exigem 500 MiB livres.
-docker run -d --name "$container" --tmpfs /data/db:rw,size=1g \
-  -p 127.0.0.1::27017 mongo:7.0.45 --replSet rs0 --bind_ip_all >/dev/null
+container_id="$(docker run -d --name "$container" --tmpfs /data/db:rw,size=1g \
+  -p 127.0.0.1::27017 mongo:7.0.45 --replSet rs0 --bind_ip_all)"
 wait_for_mongo() {
   for attempt in $(seq 1 30); do
     if docker exec "$container" mongosh --quiet --eval "$1" >/dev/null 2>&1; then return 0; fi
