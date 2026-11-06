@@ -1,6 +1,6 @@
 # Complemento definitivo — privacidade, reservas e sorteios
 
-Recebido em 05/11/2026. Este documento prevalece sobre propostas conflitantes do planejamento inicial. As regras acompanham a implementação incremental das fases autorizadas.
+Estas regras definem os contratos de autorização, privacidade e consistência da aplicação. Propostas históricas conflitantes não substituem estas decisões.
 
 ## Autorização contextual
 
@@ -26,7 +26,9 @@ Reserva verifica participação de ambos, contexto, destinatário/edição e don
 
 ## Sorteios, invalidação e concorrência
 
-`groups` mantém `adminId`, `type`, `membershipVersion` e `activeDrawId` (ausente quando não há edição ativa). Participantes são referências na coleção `memberships`, com unicidade groupId/userId. Uma versão de escrita/coordenação do grupo também serializa reservas e alterações de autorização quando necessário; não reutilizar membershipVersion para representar mudanças que não alteram composição.
+O mínimo é **três participantes**, confirmado pelo usuário. Uma nova geração pode repetir destinatários da anterior. Confirmações usam drawRevision e membershipVersion esperadas: formulário antigo não atua sobre edição/composição recente. drawRevision não muda com reservas; writeVersion é interno e não é publicado como indicador de atividade.
+
+`groups` mantém `adminId`, `type`, `membershipVersion`, `drawRevision` e `activeDrawId` (nulo quando não há edição ativa). Participantes são referências na coleção `memberships`, com unicidade groupId/userId. Uma versão de escrita/coordenação do grupo também serializa reservas e alterações de autorização quando necessário; não reutilizar membershipVersion para representar mudanças que não alteram composição.
 
 `draws._id` identifica unicamente cada edição. Campos: groupId, membershipVersion, status (`active`/`invalidated`), createdBy, createdAt e invalidatedAt. Índice único parcial groupId para status=active; somente uma edição ativa por grupo. Atribuições separadas em `assignments`, únicas por (drawId,giverId) e (drawId,recipientId). Resultados antigos permanecem inacessíveis após invalidação.
 
@@ -47,30 +49,20 @@ Transações escrevem o mesmo documento de coordenação do grupo e verificam ve
 
 Criador é membro e administrador inicial. Exatamente um administrador ativo em grupo existente. Somente ele adiciona/remove membros, edita grupo, transfere administração e inicia/refaz/invalida sorteio. Transferir valida que destinatário é membro atual e altera adminId atomicamente. Antigo administrador perde poderes imediatamente; requisições subsequentes validam o admin atual, sem usar papel persistido na sessão. Grupo com outros participantes nunca pode ficar sem administrador. Saída do administrador exige transferência prévia, além da restrição de sorteio ativo. O último administrador pode encerrar o grupo com confirmação se não houver sorteio ativo; usuários e listas pessoais são preservados.
 
-## Matriz de testes adicionais obrigatórios
+## Comportamentos verificados
 
-A matriz orienta os testes incrementais das Fases 4–6. Os relatórios de cada fase distinguem os comportamentos entregues dos cenários ainda dependentes de sorteio real.
+Testes de regras, actions, integração MongoDB e navegador cobrem autorização por contexto; resultados individuais; concorrência de reservas; limpeza ao perder acesso; sorteio com no mínimo três pessoas; cancelamento/refazer com rollback; transferência e composição bloqueada durante edição ativa. Histórico da implementação é mantido separadamente dos contratos atuais.
 
-| Área / fase | Casos |
-| --- | --- |
-| Privacidade / 5–6 | Lista alheia negada antes do sorteio; após sorteio somente destinatário; resultado alheio negado inclusive ao admin; admin acessa apenas seu próprio resultado; convencional permite listas entre membros; contexto de grupos distintos avaliado independentemente |
-| Reservas / 5–6 | Mesmo presente reservado em dois grupos; duas reservas ativas concorrentes no mesmo grupo deixam exatamente uma; sem autorização negada; dono negado; amigo secreto exige destinatário e edição ativa; dono não recebe qualquer informação de reserva; só reservante cancela |
-| Sorteios / 6 | Refazer invalida edição anterior e cancela reservas dela; reservas de outros grupos preservadas; falha intermediária faz rollback completo; reservas concorrentes com novo sorteio/invalidação não sobrevivem vinculadas a edição inválida; duplo sorteio deixa uma única edição ativa |
-| Participantes / 4–6 | Saída/remoção/adição negadas com edição ativa por chamadas diretas; permitidas após invalidação e por quem tem permissão; somente admin invalida; concorrência entre adição/saída e sorteio não produz composição inconsistente |
-| Administração / 4 | Admin não sai sem transferir; destinatário precisa ser membro; novo admin ganha poderes e anterior perde; transferência preserva sorteio; antigo admin continua sujeito ao bloqueio de saída com sorteio ativo; grupo nunca fica com membros e sem admin |
-
-Testes HTTP/DTO verificam ausência de campos confidenciais; integração MongoDB isolada verifica índices parciais, transações e requisições concorrentes. Os cenários originais de cadastro/presentes/sorteios continuam obrigatórios.
-
-## Definições complementares da Fase 2
+## Autenticação, ambiente e interface
 
 - Senha: 6 a 128 caracteres. Sessão: 7 dias. Sem confirmação de email nem recuperação de senha, por decisão explícita do usuário.
 - Banco do `.env` é produção. Testes de escrita, cadastros automatizados e exclusão/limpeza só podem ocorrer no MongoDB descartável criado pelo runner.
 - Interface: Tailwind CSS e paleta natalina (verde pinheiro, vermelho, dourado e creme).
 
-## Definição complementar da Fase 3
+## Imagem dos presentes
 
 A URL da imagem do presente é opcional, conforme instrução explícita do usuário. Quando ausente/em branco, usar uma ilustração local padrão; quando informada, validar HTTP/HTTPS e rejeitar esquemas inseguros e credenciais embutidas. Falha de carregamento também mostra a ilustração. Nome, descrição e link do produto continuam obrigatórios. O banco guarda imageUrl vazio quando não fornecido, sem vincular o registro ao domínio da aplicação.
 
-## Definições da Fase 4
+## Encerramento e informações dos grupos
 
 O usuário confirmou que o último administrador pode encerrar o grupo com confirmação, sem sorteio ativo. Com outros membros, deve transferir a administração antes de sair. Nome e descrição são editáveis; o tipo permanece o definido na criação nesta versão. Pesquisa/inclusão administrativa usa perfis mínimos (id/nome), sem convite/aceite ou email público.

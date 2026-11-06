@@ -1,99 +1,105 @@
 # Lista Natalina
 
-Plataforma de listas de presentes e amigo secreto com Next.js App Router, TypeScript, MongoDB e Tailwind CSS. Já estão implementados cadastro, entrada, logout, sessão, perfil próprio, lista pessoal de presentes, gerenciamento de grupos, listas compartilhadas por contexto e reservas privadas. Sorteios serão entregues na próxima fase.
+Aplicação para organizar listas de presentes, reunir família e amigos e realizar amigo secreto. Desenvolvida com Next.js App Router, TypeScript, MongoDB e Tailwind CSS, com prioridade para celular e uma interface simples para pessoas com diferentes níveis de familiaridade com tecnologia.
 
-## Documentação
+## Funcionalidades
 
-Para estudar a aplicação, comece pelo [guia detalhado do projeto](docs/COMO-O-PROJETO-FUNCIONA.md): estrutura, rotas, exemplos de código, autenticação, regras e MongoDB.
+- Cadastro, login, logout e sessão persistida.
+- Lista pessoal de presentes com imagem opcional e ilustração padrão.
+- Grupos com inclusão direta de usuários, sem convite ou aceite.
+- Listas compartilhadas e reservas independentes por grupo.
+- Amigo secreto com no mínimo três participantes e resultado individual privado.
+- Novo sorteio e cancelamento do sorteio, com invalidação dos resultados e reservas da edição anterior.
+- Transferência de administração, saída e remoção conforme as regras do grupo.
 
-- [Instruções de trabalho e preferências](AGENTS.md)
-- [Contexto central](CONTEXT.md)
-- [Plano completo e modelagem](docs/PLANO.md)
-- [Regras definitivas de negócio](docs/REGRAS-DE-NEGOCIO.md)
-- [Fase 1: estrutura](docs/FASE-1.md)
-- [Fase 2: autenticação, contrato HTTP e testes](docs/FASE-2.md)
-- [Fase 3: lista pessoal e autorização](docs/FASE-3.md)
-- [Fase 4: grupos, participantes e administração](docs/FASE-4.md)
-- [Fase 5: listas compartilhadas e reservas privadas](docs/FASE-5.md)
-- [Revisão da interface: simplicidade e leitura](docs/REVISAO-INTERFACE.md)
+O dono não vê se seus presentes estão reservados nem quem reservou. O administrador também não recebe os resultados individuais dos outros participantes. As permissões são verificadas no servidor.
 
-## Desenvolvimento
+## Como usar
 
-Node.js 24 (`nvm use`), pnpm 12.11.2 fixado em packageManager e lockfile versionado.
+1. Crie uma conta ou entre com email e senha.
+2. Abra **Minha lista** e adicione os presentes que gostaria de ganhar.
+3. Crie um grupo e pesquise pelo nome das pessoas cadastradas para adicioná-las.
+4. Em **Lista em grupo**, abra a lista de qualquer participante e reserve presentes.
+5. Em **Amigo secreto**, o administrador realiza o sorteio. Cada pessoa abre **Meu amigo secreto** para ver quem tirou e consultar seus presentes.
+
+Reservas valem somente para o grupo acessado. Reservar não significa que o presente foi comprado. Só quem reservou pode cancelar sua reserva manualmente.
+
+Enquanto houver sorteio ativo, ninguém pode entrar ou sair do grupo. Para mudar os participantes, o administrador cancela o sorteio, confirma a invalidação dos resultados/reservas e então altera o grupo. Refazer diretamente mantém os participantes e gera uma nova edição.
+
+## Executar localmente
+
+Use Node.js 24 (`nvm use`) e pnpm 12.11.2, fixado no packageManager.
 
 ```sh
 pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-Abra http://localhost:3000. Rotas: `/`, `/cadastro`, `/entrar`, `/dashboard`, `/perfil`, `/presentes` e `/grupos`. Dashboard, perfil, presentes e grupos exigem sessão validada no servidor. Senha de 6–128 caracteres; sessão de 7 dias; sem confirmação de email nem recuperação de senha.
+Abra http://localhost:3000. Configure as variáveis privadas a partir de `.env.example`, sem versionar credenciais. MongoDB precisa suportar transações, com Atlas ou replica set.
 
-Preserve arquivos locais existentes. Em novo checkout, use `.env.example` como referência e configure arquivos privados sem versioná-los. `.env` e `.env.local` estão ignorados pelo Git. O banco existente é de **produção**, conforme decisão do usuário: não usar para dados automatizados de teste, seed ou limpeza. Cadastros manuais no servidor local conectado a ele criam contas reais.
-
-| Variável privada | Uso |
+| Variável | Finalidade |
 | --- | --- |
-| `DATABASE_URL` | URI MongoDB, com banco explícito preferencialmente e suporte a transações |
-| `DATABASE_NAME` | Opcional; substitui o banco da URI. Informe o banco explicitamente antes das escritas |
-| `BETTER_AUTH_SECRET` | Segredo aleatório de pelo menos 32 caracteres; nunca exibir ou versionar |
-| `BETTER_AUTH_URL` | Origem exata: http://localhost:3000 localmente, HTTPS em produção |
+| `DATABASE_URL` | URI MongoDB privada |
+| `DATABASE_NAME` | Nome explícito do banco; substitui o banco da URI quando informado |
+| `BETTER_AUTH_SECRET` | Segredo de autenticação com pelo menos 32 caracteres |
+| `BETTER_AUTH_URL` | Origem exata da aplicação; localhost em desenvolvimento, HTTPS em produção |
 
-As variáveis são lidas somente no servidor. Build não exige conexão ao banco. Auth prepara índices de forma idempotente na primeira inicialização, antes de aceitar escritas. Precisa de permissões para índices e transações. Dados duplicados existentes não são removidos automaticamente.
+O banco configurado neste checkout é de **produção**. Cadastros e operações manuais no servidor local criam dados reais. Os runners automatizados usam outro MongoDB descartável; não use o `.env` existente para testes de escrita, seed ou limpeza. Preserve configurações locais existentes.
 
-## Verificação
+Senha de 6–128 caracteres; sessão de sete dias. Não há confirmação de email nem recuperação de senha. Variáveis são lidas somente no servidor; build não depende de conexão ao banco. Índices são preparados de forma idempotente na inicialização dos serviços.
+
+## Testes e verificações
 
 ```sh
-pnpm test                 # Unidade, sem banco real
+pnpm test                 # Testes isolados, sem banco real
 pnpm test:watch
 pnpm test:coverage
-pnpm lint
-pnpm typecheck
-pnpm build
-pnpm check                # Lint + tipos + unidade + build
-pnpm db:check             # Ping/topologia, somente leitura, usando .env
-pnpm test:integration     # MongoDB novo, isolado, em memória (Docker)
-pnpm test:e2e             # Build e navegador com outro MongoDB descartável
+pnpm check                # Lint + TypeScript + unidade + build
+pnpm test:integration     # MongoDB descartável com replica set (Docker)
+pnpm test:e2e             # Build, navegador e MongoDB descartável
+pnpm db:check             # Diagnóstico somente leitura do banco configurado
 ```
 
-Os runners de integração/E2E não usam o banco do `.env`: criam containers com tmpfs e portas aleatórias, sobrescrevem as variáveis no processo de teste e limpam somente recursos próprios. Reutilizam a imagem `mongo:7.0.45` quando já disponível. E2E usa Chromium local quando instalado; caso contrário, `pnpm exec playwright install chromium`. Capturas e traces ficam em `test-results`, ignorado pelo Git.
+Integração/E2E criam containers com tmpfs e portas aleatórias, sobrescrevem as variáveis do processo e limpam apenas recursos próprios. A imagem `mongo:7.0.45` é reutilizada quando disponível. E2E usa Chromium local; se necessário, instale com `pnpm exec playwright install chromium`.
 
-A fixture E2E limpa somente contadores de rate limit entre cenários no banco descartável validado, para isolar os cadastros dos testes. A proteção da aplicação permanece habilitada e possui testes próprios de integração. Para filtrar o navegador após o build: `bash scripts/test-auth.sh e2e e2e/groups.spec.ts`.
+Depois do build, é possível filtrar um fluxo:
 
-`db:check` consulta ping/topologia, fecha a conexão e não imprime URI, hosts, credenciais ou documentos; não cria coleções/índices/dados. Verificação de topologia não substitui testes de transações reais.
+```sh
+bash scripts/test-auth.sh e2e e2e/secret-santa.spec.ts
+```
 
-## Organização e interface
+Capturas e traces ficam em `test-results`, ignorado pelo Git. A fixture isola contadores de rate limit entre cenários apenas no banco de testes validado; a proteção da aplicação permanece habilitada. O CI executa check, integração e E2E em bancos descartáveis, sem credenciais de produção.
 
-`src/app`: páginas/layouts/Route Handlers. `src/modules/auth`: validação, configuração Better Auth, índices, adaptador HTTP, sessão e formulários. `src/modules/gifts`: validação, serviços, repositório, Server Actions e UI da lista pessoal. `src/modules/groups`: regras de administração, participações, transações, consultas públicas mínimas e UI dos grupos. `src/lib/db`: pool MongoDB reutilizável e server-only. Testes junto dos módulos. Novos módulos serão adicionados conforme cada fase, sem implementações vazias.
+## Estrutura
 
-Server Components são o padrão. Formulários usam o handler HTTP para manter cookies e rate limiting da biblioteca. Presentes usam Server Actions autenticadas e revalidação após sucesso. Regras de domínio não pertencem aos componentes React. Listas alheias e reservas exigem contexto explícito do grupo; autorização e disponibilidade ficam no módulo reservations.
+| Pasta | Responsabilidade |
+| --- | --- |
+| `src/app` | Páginas, layouts, Route Handlers e estados de carregamento/erro |
+| `src/modules/auth` | Autenticação e sessão |
+| `src/modules/gifts` | Lista pessoal, validação e persistência de presentes |
+| `src/modules/groups` | Grupos, membros e administração |
+| `src/modules/reservations` | Autorização contextual, disponibilidade, reservas e leitura do resultado individual |
+| `src/modules/secret-santa` | Algoritmo, geração, invalidação e novo sorteio |
+| `src/lib` | Ambiente privado e conexão MongoDB reutilizável |
+| `src/components` | Apresentação compartilhada e navegação |
+| `e2e` | Fluxos completos de navegador em desktop/celular |
 
-Interface usa textos diretos, fonte base de 18 px, menu com seção atual e controles principais de pelo menos 48 px. Imagem opcional fica recolhida no formulário, e cadastro/entrada permitem conferir a senha digitada. Estilos usam Tailwind CSS. Tokens da paleta natalina estão em `src/app/globals.css`; estilos de componentes e responsividade ficam nos utilitários do JSX. Sem biblioteca extra de formulários ou estado global.
+Páginas são Server Components por padrão. Client Components ficam nas interações: formulários, confirmações, menu ativo e imagem com fallback. Server Actions autenticadas recebem alterações de presentes/grupos/reservas/sorteios. Autenticação usa Route Handlers para preservar cookies e o contrato do Better Auth. Regras ficam nos serviços; consultas e transações, nos repositórios.
 
-## Lista de presentes
+## Interface
 
-Acesse `/presentes` após entrar. Nome, descrição e link HTTP/HTTPS do produto são obrigatórios. URL da imagem é opcional; imagem ausente ou com falha usa a ilustração local `public/images/gift-default.svg`. A lista tem paginação de 24 itens, sem limite total de presentes. Somente o proprietário edita e exclui seus itens; exclusão exige confirmação e cancela reservas desses presentes em todos os grupos na mesma transação. Outras pessoas só consultam por uma rota de grupo autorizada.
+Fonte base de 18 px, controles principais de pelo menos 48 px, textos diretos, menu com seção atual e foco visível para teclado. Tailwind aplica os estilos, com tokens natalinos em `src/app/globals.css`. Não há biblioteca adicional de formulários ou estado global.
 
-## Grupos
+O ícone fonte está em `src/app/icon.svg`. Para regenerar PNGs/ICO: `node scripts/generate-icons.mjs`, reutilizando sharp do Next.js. Manifest e ícones não adicionam suporte offline.
 
-Acesse `/grupos` ou os cards no dashboard. Crie um grupo convencional ou de amigo secreto; o criador já é membro e administrador. O administrador pesquisa pelo início do nome e adiciona usuários diretamente, edita nome/descrição, remove membros e transfere sua função para outro participante. O tipo fica definido na criação.
+## Vercel
 
-Participantes podem sair. Com outros membros, o administrador precisa transferir a função antes; sendo o último, pode encerrar com confirmação. Sorteio ativo bloqueia alterações de participantes e encerramento no servidor, preservando a possibilidade de transferência. A realização/invalidação do sorteio pertence à Fase 6. Grupos e membros são paginados, sem limite total arbitrário.
+Projeto único Next.js/Node.js 24. Instalação `pnpm install --frozen-lockfile`, build `pnpm build` e saída padrão do framework. Configure variáveis por ambiente, origem HTTPS e segredo próprios. Previews precisam de banco separado. Deploy ainda não realizado.
 
-O acesso às informações exige participação no grupo; a busca administrativa retorna somente id/nome. Em grupos convencionais, “Ver lista de presentes” abre a lista de um participante com disponibilidade daquele grupo. Amigo secreto não libera listas antes do sorteio; a autorização por destinatário/edição já está preparada para a próxima fase. Usuários e listas pessoais são preservados ao encerrar o grupo.
+Não há dependência de processo permanente nem armazenamento local persistente. O pool MongoDB tem máximo de dez conexões por instância; múltiplas Functions têm pools distintos. Escolha uma região próxima ao banco e dimensione permissões/rede/conexões para a concorrência esperada.
 
-## Reservas por grupo
+## Documentação
 
-Na lista do participante, use “Reservar presente”. Só quem reservou vê “Cancelar minha reserva”, com confirmação. O dono não recebe estado nem identidade de reservas. Um presente pode ter reservas independentes em grupos diferentes; duas reservas ativas no mesmo grupo são impedidas pelo índice único e por transações. Reservar não significa que o item foi comprado.
-
-Se a tela estiver desatualizada, uma tentativa concorrente recebe feedback e um botão para atualizar a lista. Saída/remoção cancela reservas como dono ou reservante naquele grupo, preservando outros contextos. Histórico cancelado não é público. A rota `/grupos/[id]/listas/[ownerId]` revalida sessão, participação e política do grupo no servidor; conhecer IDs não concede acesso.
-
-## Ícone da aplicação
-
-Fonte vetorial: `src/app/icon.svg`, com presente nas cores natalinas. Next.js registra favicon e ícone Apple automaticamente; `manifest.ts` oferece ícones de tela inicial em 192 e 512 px. Para atualizar os PNGs e o ICO após editar o SVG: `node scripts/generate-icons.mjs` (reutiliza sharp já incluído pelo Next.js). Isso não adiciona suporte offline.
-
-## Vercel e CI
-
-Projeto único Next.js/Node.js 24, sem processos permanentes ou armazenamento local persistente. Build `pnpm build`, instalação `pnpm install --frozen-lockfile`, saída padrão do Next.js. Configurar envs privadas por ambiente, origem HTTPS exata e segredo próprio. Não compartilhar URI de produção com previews automaticamente. Deploy ainda não realizado.
-
-Mantenha Functions próximas ao MongoDB; use TLS e permissões/rede restritas. Pool máximo 10 por instância, timeout de seleção de servidor e de espera pelo pool de 5 segundos. Não existe um único pool compartilhado por todas as Functions; dimensionar conexões do Atlas conforme concorrência.
-
-GitHub Actions roda lint, tipos, unidade, build, integração e E2E em bancos descartáveis, sem credenciais de produção. O pnpm-workspace.yaml autoriza esbuild e registra uma exceção de idade para a versão exata de Vite já resolvida; não desabilita a política global de dependências.
+- [Guia do projeto: estrutura, fluxos e exemplos de código](docs/COMO-O-PROJETO-FUNCIONA.md)
+- [Arquitetura e modelagem](docs/PLANO.md)
+- [Regras de negócio e privacidade](docs/REGRAS-DE-NEGOCIO.md)

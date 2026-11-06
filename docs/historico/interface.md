@@ -21,7 +21,7 @@ Solicitada pelo usuário após a Fase 4: a aplicação também será usada por p
 
 `src/app/globals.css`: tipografia e tokens. `src/components/account-nav.tsx` e layout privado: navegação e atalho. Páginas públicas, auth, dashboard, perfil, presentes e grupos: organização e linguagem. `src/modules/*/components`: formulários, cards e diálogos. Nenhuma regra de propriedade, administração, sessão ou transação foi relaxada.
 
-A explicação para estudo está em [COMO-O-PROJETO-FUNCIONA.md](COMO-O-PROJETO-FUNCIONA.md), com árvore de pastas, mapa de rotas, responsabilidades, exemplos de código, fluxos completos e orientação de leitura.
+A explicação para estudo está em [COMO-O-PROJETO-FUNCIONA.md](../COMO-O-PROJETO-FUNCIONA.md), com árvore de pastas, mapa de rotas, responsabilidades, exemplos de código, fluxos completos e orientação de leitura.
 
 ## Verificação
 

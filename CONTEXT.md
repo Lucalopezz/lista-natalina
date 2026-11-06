@@ -1,99 +1,73 @@
 # Contexto central — Lista Natalina
 
-Última atualização: 06/11/2026. Este arquivo facilita continuidade; confira código, Git e documentos de origem antes de concluir que uma verificação antiga continua válida. Regras de trabalho: [AGENTS.md](AGENTS.md).
+Atualizado em 06/11/2026. Confira código, Git e verificações atuais antes de concluir que um registro anterior permanece válido. Regras de trabalho: [AGENTS.md](AGENTS.md).
 
-## Objetivo
+## Objetivo e fontes
 
-Aplicação full-stack mobile-first para listas pessoais de presentes, grupos convencionais e amigo secreto, com reservas privadas e resultados individuais confidenciais. Next.js App Router, TypeScript e MongoDB, em projeto único compatível com Vercel. Desenvolvimento incremental com TDD, commits pequenos e push autorizado.
+Aplicação full-stack mobile-first para listas pessoais, grupos, reservas privadas e amigo secreto. Next.js App Router, TypeScript estrito e MongoDB, compatível com Vercel. A interface também atende pessoas mais velhas, com textos literais, fonte base 18 px, controles confortáveis e navegação simples.
 
-## Fontes de decisão
+Fontes: instruções atuais do usuário; [regras de negócio](docs/REGRAS-DE-NEGOCIO.md); [arquitetura/modelagem](docs/PLANO.md); [guia do projeto](docs/COMO-O-PROJETO-FUNCIONA.md). O usuário pediu que README e guias principais sejam organizados por funcionalidades, sem divisões por fases. Registros históricos ficam em docs/historico, separados da documentação atual.
 
-1. Instruções atuais do usuário.
-2. [Regras definitivas de negócio](docs/REGRAS-DE-NEGOCIO.md), que substituem propostas conflitantes do plano inicial.
-3. [Plano completo](docs/PLANO.md): arquitetura, coleções, bibliotecas, testes e sete fases.
-4. [Relatório da Fase 1](docs/FASE-1.md): resultados efetivamente verificados e limitações.
+## Implementado
 
-O perfil ai-memory contribui com preferências de comunicação, conforme a origem registrada em AGENTS.md. Não importar automaticamente regras de domínio de Agrofin ou outros projetos.
-
-## Estado implementado
-
-- Fases 1–5 implementadas. Fases 6–7 ainda não iniciadas. Compartilhamento/reservas: [FASE-5.md](docs/FASE-5.md). Grupos: [FASE-4.md](docs/FASE-4.md). Consulte [FASE-2.md](docs/FASE-2.md) para autenticação, ambiente e testes.
-- Next.js 16.4.5, React 19.3.1 e TypeScript estrito; página pública, cadastro, entrada, dashboard, perfil, CRUD da lista pessoal, gerenciamento de grupos e reservas contextuais; Tailwind CSS com paleta natalina.
-- pnpm 12.11.2 em packageManager, pnpm-lock.yaml versionado e Node.js 24 como alvo. Instalação npm anterior removida; manter package.json.
-- Zod para validar ambiente privado, usando o nome existente `DATABASE_URL`; `DATABASE_NAME` opcional. Sem nome explícito, o driver usa o da URI ou seu padrão: confirmar banco antes de escrever.
-- Driver oficial MongoDB em módulo server-only; conexão lazy, promessa global por instância, pool máximo 10, conexão inicial descartada após falha para permitir nova tentativa.
-- Vitest, ESLint e scripts de typecheck/build; workflow GitHub Actions configurado com pnpm e Node.js 24.
-- Ícone natalino em SVG, favicon ICO, ícone Apple e PNGs 192/512 com manifest. Fonte em src/app/icon.svg; geração de derivados em scripts/generate-icons.mjs.
-- O README e docs explicam configuração local e preparação para Vercel. Nenhuma publicação foi feita.
+- Cadastro, login, logout, sessão e perfil próprio.
+- Lista pessoal completa, edição/exclusão apenas pelo dono, paginação de 24 sem limite total.
+- Imagem opcional com ilustração local padrão, inclusive em falha de carregamento.
+- Grupos convencionais e amigo secreto; inclusão direta sem convite; administração, remoção, saída e transferência.
+- Listas autorizadas por contexto e reservas independentes por grupo, com cancelamento sistêmico ao perder acesso.
+- Sorteio mínimo de três, resultado individual, novo sorteio e invalidação com cancelamento transacional das reservas da edição.
+- Dashboard com resultados ativos, páginas responsivas e testes desktop/celular.
 
 ## Mapa do código
 
 | Local | Responsabilidade |
 | --- | --- |
-| `src/app` | Layout, estilos e página pública inicial |
-| `src/lib/env/server.ts` | Validação lazy e mensagem de configuração sem valores sensíveis |
-| `src/lib/db/mongodb.ts` | Cliente/pool reutilizável e acesso ao banco no servidor |
-| `src/lib/**/*.test.ts` | Testes isolados de ambiente e conexão |
-| `scripts/check-database.ts` | Ping e consulta de topologia explícitos, sem modificar dados |
-| `.github/workflows/validacao.yml` | Instalação reproduzível e verificação no CI |
-| `src/modules/auth` | Autenticação e sessão |
-| `src/modules/gifts` | Validação, casos de uso, persistência, Server Actions e UI da lista pessoal |
-| `src/modules/groups` | Administração, participantes, pesquisa mínima, transações e UI de grupos |
-| `src/modules/reservations` | Autorização de listas no grupo, disponibilidade, reservas e cancelamento sistêmico |
-| Demais módulos futuros | users e secret-santa, criados conforme cada fase |
+| src/app | Páginas, layouts, estados e Route Handler de auth |
+| src/modules/auth | Better Auth, sessões, validação e contrato HTTP |
+| src/modules/gifts | Lista pessoal, DTO explícito e exclusão transacional |
+| src/modules/groups | Participações, administração e grupos ativos paginados |
+| src/modules/reservations | Política contextual, disponibilidade, reservas e resultado da sessão no mesmo snapshot |
+| src/modules/secret-santa | Algoritmo, geração/invalidação/refazer, revisão e controles administrativos |
+| src/lib/env e src/lib/db | Configuração privada e pool reutilizável |
+| src/components | Marca e menu com seção atual |
+| e2e e scripts/test-auth.sh | Navegador e MongoDB descartável |
 
-Better Auth 1.7.17 com adapter MongoDB implementado. Senha de 6–128 caracteres, sessão de 7 dias, sem confirmação de email nem recuperação de senha (decisões explícitas do usuário). Há cadastro/login/logout/perfil e índices de auth. Presentes implementados na [Fase 3](docs/FASE-3.md), incluindo paginação de 24 itens sem limite total, edição/exclusão restritas ao dono e imagem opcional com ilustração local padrão. Grupos implementados na Fase 4. Compartilhamento e reservas implementados na Fase 5. Geração/invalidação/novo sorteio ainda não implementados.
+Páginas são Server Components; formulários, diálogos, menu ativo e fallback de imagem são Client Components. Auth usa Route Handlers; alterações de domínio usam Server Actions autenticadas. Serviços recebem repositórios para testes. Não enviar algoritmo, conexão ou resultados coletivos ao navegador.
 
-## Invariantes de negócio
+## Regras confirmadas
 
-- Lista pessoal é única por usuário; grupos não copiam presentes.
-- Grupo convencional permite listas/reservas entre membros.
-- Em amigo secreto, antes do sorteio não há acesso a listas alheias; depois, somente à lista do destinatário do usuário autenticado.
-- Permissão sempre depende do grupo acessado. Um grupo convencional em comum não libera acesso pelo contexto de amigo secreto.
-- Reserva pertence a grupo + presente; amigo secreto inclui edição. Mesmo presente pode ter reservas distintas em grupos diferentes.
-- Índice implementado: único parcial (groupId,giftId) para status=active. Proprietário nunca recebe estado/identidade das reservas.
-- Somente o reservante cancela manualmente. Invalidação de sorteio cancela reservas da edição de forma sistêmica.
-- Uma edição ativa por grupo. Refazer invalida anterior e cancela reservas dela na mesma transação, preservando outros grupos.
-- Edição ativa bloqueia adição, remoção e saída de membros. Administrador precisa invalidar explicitamente antes de alterar composição.
-- Exatamente um administrador por grupo. Transferência só para membro atual; não altera sorteio. Antigo administrador perde poderes e continua sujeito ao bloqueio de saída com sorteio ativo.
-- Nem administrador recebe atribuições de terceiros. DTOs explícitos; autorização servidor, nunca apenas interface.
+Senha de 6–128 caracteres, sessão de sete dias, sem confirmação de email nem recuperação. Better Auth/scrypt com cookies HttpOnly; origem explícita e Secure em HTTPS. Não perguntar novamente.
 
-A implementação deve seguir os detalhes e a matriz de testes do complemento definitivo, incluindo coordenação transacional para evitar reservas sobrevivendo à invalidação concorrente.
+Lista pessoal é única; grupo não copia presentes. Convencional permite listas entre membros; amigo secreto só permite o destinatário da própria sessão após edição válida. Compartilhar outro grupo não libera o contexto solicitado.
 
-## Verificações e ambiente
+Reserva pertence a groupId/giftId, com drawId no amigo secreto. O dono não recebe status, identidade, IDs, contagem ou alteração de datas públicas por reserva. Somente reservante cancela manualmente. Índice único parcial impede duas ativas por par.
 
-Fase 4: 123 testes isolados, 37 de integração com MongoDB descartável e dez E2E Playwright (desktop/celular) aprovados; lint, TypeScript e build também. Capturas de grupos/participantes e os fluxos anteriores revisados. `pnpm audit --prod` não encontrou vulnerabilidades conhecidas. Auditorias são retratos do momento, revalidar quando necessário.
+Grupo sempre tem exatamente um administrador participante. Último admin encerra com confirmação e sem sorteio ativo; com outras pessoas transfere antes de sair. Edição ativa bloqueia adicionar/remover/sair/encerrar, incluindo antigo admin após transferência. Transferência preserva resultados.
 
-O usuário corrigiu a conexão e definiu o banco como **produção**, com nome explícito `lista-natalina` (DATABASE_NAME no .env). Auth bloqueia escritas se o nome estiver implícito. Ping e topologia transacional confirmados sem alteração de documentos. Nunca fazer cadastro automatizado, seed, drop ou limpeza nele. Testes são executados por `scripts/test-auth.sh`, com MongoDB temporário em tmpfs e envs explicitamente sobrescritas. O helper de integração recusa URI diferente do formato local descartável.
+Mínimo de três participantes foi confirmado pelo usuário. Fisher–Yates/crypto com rejeição de autoatribuição tem tentativas limitadas; nova geração pode repetir pares. drawRevision só muda com operações de sorteio e protege confirmações antigas; membershipVersion muda com composição; writeVersion coordena mutações e não é público.
 
-As novas variáveis privadas foram centralizadas no `.env`, com autorização do usuário: segredo de autenticação, origem local e DATABASE_NAME. A URI existente foi preservada; `.env.local` não mantém duplicatas. A aplicação local conectada a esse banco cria contas reais quando o usuário se cadastra manualmente. Primeira inicialização funcional de auth prepara índices idempotentes. A verificação de conexão feita nesta etapa não criou índices.
+## Consistência e privacidade
 
-Servidor de desenvolvimento iniciado em http://localhost:3000 nesta sessão; verificar se continua rodando antes de prometer disponibilidade futura. Testes E2E usam outro servidor e banco. Deploy Vercel ainda não realizado. Na Vercel, configurar origem HTTPS exata e segredo próprio; previews exigem banco separado.
+Reserva/cancelamento escrevem grupo e presente. Exclusão de presente cancela em todos os grupos na mesma transação. Saída/remoção cancelam como dono ou reservante somente no grupo afetado. Encerramento cancela remanescentes daquele grupo; histórico cancelado não é público.
 
-## Revisão após a Fase 4
+Invalidação/novo sorteio disputam o mesmo documento do grupo que reservas e membros. Transação invalida edição e cancela suas reservas antes de publicar nova edição/ponteiro, quando aplicável. Resultado da sessão, presentes e disponibilidade são lidos juntos em snapshot. Nem admin recebe atribuições alheias. Callback transacional não tem efeitos externos.
 
-O usuário solicitou interface mais simples para incluir pessoas mais velhas, com commit/push, e explicação detalhada do projeto. Implementada revisão de apresentação/interação: fonte base 18 px, textos diretos, menu visível com seção atual, ações principais maiores, mostrar senha, imagem opcional recolhida, tipos de grupo explicados e gestão por pessoa em detalhes. Naquela revisão, backend/regras das Fases 1–4 foram preservados; a Fase 5 foi implementada posteriormente, conforme o registro abaixo.
+## Ambiente e verificações
 
-Guia de estudo: [COMO-O-PROJETO-FUNCIONA.md](docs/COMO-O-PROJETO-FUNCIONA.md). Relatório: [REVISAO-INTERFACE.md](docs/REVISAO-INTERFACE.md). E2E passa a 12 cenários desktop/celular; o novo cobre teclado, foco, senha, imagem opcional, cancelamento e texto ampliado em viewport 320 px. Capturas revisadas. Isso não substitui teste de usabilidade com o público nem auditoria completa de acessibilidade.
+Node.js 24 alvo; pnpm 12.11.2, lockfile versionado. Next.js 16.4.5, React 19.3.1, Better Auth 1.7.17. Tailwind com verde/vermelho/dourado/creme; sem biblioteca extra de formulários/estado global. Ícones em SVG/ICO/PNG e script de geração, sem suporte offline.
 
-## Fase 5 — listas e reservas
+Banco configurado é **produção**, nome lista-natalina, conforme definição do usuário. Nunca executar seed, cadastros automatizados, drop ou limpeza nele. .env/arquivos locais devem ser preservados e nunca impressos/versionados. Auth exige banco explícito antes de escrita. Testes sobrescrevem variáveis e recusam URI fora do formato descartável em loopback.
 
-Implementados acesso contextual a listas, disponibilidade por grupo e reserva/cancelamento autenticados, com índice único parcial e transações. Rota `/grupos/[id]/listas/[ownerId]`. Dono não consulta nem recebe reservas, incluindo datas públicas inalteradas. Autorização de amigo secreto exige edição ativa/grupo/versão e destinatário da sessão, sem exceção para admin; geração de sorteio permanece futura.
+Driver oficial server-only, conexão lazy e promessa compartilhada por instância, pool máximo dez, recuperação após falha inicial. Build não abre banco. Índices idempotentes na inicialização dos serviços; várias Functions têm pools distintos.
 
-Reservar/cancelar escrevem grupo e presente. Saída/remoção cancelam reservas como dono ou reservante no grupo afetado; exclusão de presente cancela em todos os grupos. Remanescentes são cancelados ao encerrar grupo. Tudo na sessão da operação principal. Histórico cancelado permanece sem endpoint público. ownerId da reserva vem do presente, não do formulário; reservationVersion é interno e não é serializado.
+Verificação de amigo secreto: 198 testes isolados, 77 integração e 16 E2E; lint, tipos e build aprovados. Capturas desktop/celular revisadas. A regressão de navegação recebeu teste próprio. O CI remoto é informado na entrega. Não houve testes automatizados no banco real nem deploy.
 
-Verificação desta etapa: 152 testes isolados, 58 de integração e 14 E2E desktop/celular; lint, tipos e build passaram. Capturas de reservas revisadas. Fixture de invalidação testa o protocolo concorrente, mas não substitui implementar/testar o caso de uso real na Fase 6. Banco de produção e .env preservados.
+Servidor local em http://localhost:3000 foi iniciado nesta sessão; verificar disponibilidade antes de prometer acesso. Ele usa a configuração real; os runners usam outro servidor/banco.
 
-## Próxima etapa
+## Continuidade
 
-Fase 6: confirmar mínimo de participantes e implementar sorteio, resultado individual, invalidação e novo sorteio com cancelamento transacional das reservas da edição. Não iniciar automaticamente após esta entrega: o usuário pediu avanço por etapas. A Fase 5 e seus commits/push foram autorizados pela continuidade desta sessão.
+Amigo secreto e reorganização documental foram autorizados com commits/push na continuidade desta sessão. Próximo trabalho é revisão final de segurança, acessibilidade, integração e preparação de deploy; aguardar novo avanço do usuário antes dessa etapa. Deploy exige autorização própria.
 
-Pendências das fases seguintes: mínimo de participantes para sorteio, edição de perfil e exclusão de conta/retenção. Último administrador pode encerrar com confirmação, sem sorteio ativo; regra já confirmada pelo usuário. Senha/sessão e ausência de email/recuperação já estão definidos, não perguntar novamente.
+Edição de perfil, exclusão de conta e retenção de histórico continuam pendentes de definição. Mínimo, senha/sessão, ausência de email/recuperação e encerramento pelo último admin já estão definidos.
 
-Commits de referência da Fase 1: `f832e7e`, `8c76bc9`, `35edd6a`, `c4772ae` e `1d68a8b`; backend de auth: `a9b2025`; base da lista pessoal: `87ff062`; backend de grupos: `03d881e`. Consulte `git log`/`git status` para histórico e estado atuais.
-
-## Grupos: garantias atuais
-
-Participações separadas, unicidade groupId/userId e contagem de membros atualizada na mesma transação. Toda mutação escreve o grupo (writeVersion), relê permissões e preserva um único administrador participante. membershipVersion muda só com composição; transferência preserva sorteio/composição. Sorteio ativo bloqueia adicionar/remover/sair/encerrar, inclusive no backend, mas permite transferência. O algoritmo/invalidação real pertence à Fase 6. Tipo do grupo é imutável nesta versão.
-
-Pesquisa pelo início do nome (case-insensitive, literal), apenas para admin adicionar; retorna id/nome e exclui membros atuais. Grupos/membros têm páginas de 24; candidatos de 20. Fixture E2E limpa somente contadores rateLimit do banco descartável entre testes, sem desabilitar proteção da aplicação.
+Commits anteriores de referência: af3c5d3 (reservas), 29437b7 (revisão de interface). Backend de sorteios: 3e07a36 e d688a82. Consulte git log/status para estado atual. Não importar regras de outros projetos a partir do perfil global.

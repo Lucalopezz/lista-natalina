@@ -1,139 +1,117 @@
-# Plano de implementação — Lista Natalina
+# Arquitetura e modelagem
 
-## Escopo e estado inicial
+## Visão geral
 
-Aplicação web mobile-first para listas pessoais, grupos convencionais e amigo secreto, com Next.js App Router, TypeScript e MongoDB no mesmo projeto, compatível com Vercel. Prioridades: autorização no servidor, privacidade das reservas e atribuições, TDD e simplicidade.
+Aplicação full-stack em Next.js App Router, React e TypeScript estrito, com MongoDB e runtime Node.js. A lista de presentes pertence à pessoa; o grupo define quem pode consultá-la e a disponibilidade das reservas naquele contexto. Interface mobile-first com Tailwind CSS, linguagem direta e paleta natalina.
 
-Inspeção em 05/11/2026: somente README.md e commit inicial `b54cb55`; `.env` local com `DATABASE_URL`, sem aplicação, dependências ou regras AGENTS.md encontradas nos diretórios ancestrais. Preservar o `.env`; nunca registrar valores ou documentos reais nos logs. Não executar seeds ou alterações no banco existente nesta etapa.
+## Organização por funcionalidades
 
-A Fase 1 foi autorizada pelo pedido atual. As fases seguintes serão iniciadas em novas etapas com o usuário. O complemento definitivo recebido nesta etapa prevalece sobre propostas anteriores. Consulte [REGRAS-DE-NEGOCIO.md](REGRAS-DE-NEGOCIO.md). Somente os pontos explicitamente pendentes precisam de confirmação.
+| Local | Responsabilidade |
+| --- | --- |
+| `src/app` | Rotas, layouts, páginas e adaptadores HTTP |
+| `src/modules/auth` | Identidade, credenciais, sessões e contrato HTTP |
+| `src/modules/gifts` | Lista pessoal e projeção permitida dos presentes |
+| `src/modules/groups` | Participações, administração e consultas do dashboard |
+| `src/modules/reservations` | Política contextual, reservas, disponibilidade e resultado individual com sua lista |
+| `src/modules/secret-santa` | Algoritmo, ciclo de vida das edições e operações administrativas |
+| `src/lib/env` | Validação lazy de configuração privada |
+| `src/lib/db` | Cliente MongoDB reutilizável por instância |
+| `src/components` | Apresentação comum e navegação |
 
-## Arquitetura
+Em cada módulo, `validation.ts` valida entrada; `service.ts` aplica autorização e regras; `repository.ts` implementa consultas e transações; `server.ts` monta dependências; `actions.ts` adapta formulários; `types.ts` define os contratos. Abstrações existem para permitir testes de regras sem banco e transações reais com o mesmo serviço, sem repositório genérico ou classes vazias.
 
-- `src/app`: rotas, layouts, estados de carregamento/erro e adaptadores HTTP/Server Actions. Server Components por padrão; Client Components apenas para interatividade.
-- `src/modules/{auth,users,gifts,groups,reservations,secret-santa}`: validação, serviços/casos de uso, repositórios MongoDB e DTOs por funcionalidade. Criar arquivos conforme os casos reais, sem classes vazias ou repositório genérico.
-- `src/lib/env`: leitura e validação lazy das variáveis privadas; build não depende de banco disponível.
-- `src/lib/db`: conexão reutilizável e protegida com `server-only`; pool pequeno por instância Node.js, reconexão após falha inicial.
-- `src/components`: componentes de apresentação compartilhados, adicionados conforme necessário.
-- `scripts`: diagnóstico explícito; nenhum acesso automático ao banco durante build.
-- Testes próximos ao código. Serviços recebem dependências quando isso permite isolar regras; integração verifica operações reais do MongoDB em banco exclusivo de testes.
+Fluxo de alteração: formulário → Server Action → sessão e validação → serviço → repositório → DTO explícito. Leituras podem chamar serviços diretamente de Server Components, sem API HTTP intermediária. Auth usa Route Handlers para preservar cookies e rate limiting do Better Auth.
 
-Fluxo: componente/endpoint → identidade autenticada → validação → serviço/autorização → repositório → DTO explícito. Nunca confiar em `userId` enviado pelo cliente para identificar o autor. Não serializar documentos completos, senhas, sessões ou resultados de terceiros.
+## Servidor e navegador
 
-Operações privadas não terão cache compartilhado. Server Actions validam identidade e entrada em toda chamada, com revalidação somente após sucesso. Route Handlers atendem autenticação e endpoints necessários, evitando uma API REST paralela sem consumidor. Middleware/proxy poderá ajudar no redirecionamento, mas nunca será a única autorização. Usar runtime Node.js, sem Edge para MongoDB.
+- Páginas/layouts são Server Components por padrão. Leem identidade e dados no servidor.
+- Formulários, diálogos, menu ativo e imagem com fallback são Client Components, com estado/eventos locais. A página inteira não precisa se tornar cliente para conter um botão interativo.
+- Client Components podem receber HTML inicial renderizado no servidor; hidratação conecta os eventos no navegador.
+- Server Actions autenticam cada chamada e não confiam em IDs bound como permissão. Zod valida também operações feitas diretamente, fora da UI.
+- Repositórios/conexão/algoritmo têm dependências exclusivas do servidor. Não há credenciais, pares coletivos ou acesso MongoDB no bundle cliente.
+- Configuração e conexões são reutilizadas por instância; dados privados não usam cache compartilhado entre pessoas.
 
-## Bibliotecas e decisões técnicas
+## Bibliotecas
 
-| Área | Escolha | Motivo / alternativa |
+| Área | Escolha e motivo |
+| --- | --- |
+| Dados | Driver oficial MongoDB: índices, pool e transações explícitos |
+| Validação | Zod: validação em execução e schemas próximos do domínio |
+| Autenticação | Better Auth e adapter MongoDB: scrypt, cookies e sessões persistidas |
+| Formulários | HTML nativo, estado local e useActionState; sem dependência adicional |
+| Interface | Tailwind e componentes semânticos próprios; sem kit pesado |
+| Testes | Vitest para regras/actions/integração; Playwright para navegador |
+
+pnpm e lockfile fixam instalação reproduzível; Node.js 24 é o alvo de desenvolvimento/CI/hospedagem. Versões exatas resolvidas estão no lockfile.
+
+## Modelagem MongoDB
+
+IDs BSON ObjectId são convertidos para strings em contratos de aplicação; datas BSON UTC viram ISO nos DTOs. Referências evitam duplicar listas e crescer arrays ilimitados dentro de um grupo.
+
+| Coleção | Campos principais | Índices/garantias |
 | --- | --- | --- |
-| Framework | Next.js + React + TypeScript estrito | App Router e aplicação única; versões resolvidas no pnpm-lock.yaml |
-| Banco | Driver oficial `mongodb` | Pool, índices e transações explícitos; Mongoose adicionaria ODM e duplicação de schemas sem benefício imediato |
-| Validação | Zod | Schemas reutilizáveis; erros públicos sanitizados |
-| Autenticação (Fase 2) | Better Auth, adapter MongoDB | Email/senha, sessões persistidas e hash seguro mantidos pela biblioteca; confirmar versão e integração no início da fase |
-| Testes | Vitest; integração MongoDB isolada | Unidade rápida e verificação de índices/transações reais; adicionar Testing Library e Playwright nas fases com formulários e fluxos completos |
-| Interface | Tailwind CSS e HTML semântico | Preferência explícita do usuário; tokens natalinos compartilhados, sem kit pesado |
-| Formulários | Formulários nativos + Server Actions + Zod | Evita biblioteca adicional no início; React Hook Form somente se a complexidade justificar |
-| Estado | Estado local React e servidor | Sem Redux/Zustand/TanStack Query até existir necessidade concreta |
+| `user` | Perfil, email normalizado e datas | Email único, nome para pesquisa |
+| `account` | Credencial/identificadores do adapter e hash de senha | providerId/accountId únicos; userId |
+| `session` | Token, userId e validade | Token único; userId; TTL expiresAt |
+| `rateLimit` | Contadores de tentativas | Chave única, persistência entre instâncias |
+| `gifts` | Dono, nome, descrição, URLs, datas e reservationVersion interno | ownerId + _id desc para paginação |
+| `groups` | Nome, tipo, adminId, memberCount, membershipVersion, writeVersion, activeDrawId e drawRevision | adminId; documento compartilhado de coordenação |
+| `memberships` | groupId, userId, joinedAt | Único groupId/userId; userId/groupId desc |
+| `reservations` | groupId, giftId, ownerId, reservedBy, drawId opcional, estado e datas | Único parcial groupId/giftId quando active; índices de cancelamento por grupo/edição/dono/reservante e por presente |
+| `draws` | Edição, grupo, versão da composição, estado, criador e datas | Uma edição ativa por grupo; grupo/data |
+| `assignments` | drawId, giverId, recipientId | Únicos drawId/giverId e drawId/recipientId |
 
-Better Auth foi integrado na Fase 2 com senha de **6–128 caracteres**, conforme definição explícita do usuário, hash scrypt da biblioteca, sessão persistida de **7 dias**, cookies HttpOnly/SameSite=Lax e Secure em HTTPS. Não haverá confirmação de email nem recuperação de senha neste projeto. Endpoints fora desse escopo são bloqueados. Formulários usam Route Handlers para preservar cookies e rate limiting da biblioteca; não há Server Action de autenticação paralela.
+O contrato de verificação do adapter não corresponde a um fluxo de confirmação/recuperação oferecido pelo produto. Atribuições e reservas não são incorporadas a perfis/presentes: documentos completos desses vínculos não podem vazar junto da lista pessoal.
 
-## Modelagem MongoDB proposta
+`memberCount` é atualizado na mesma transação que memberships. `ownerId` da reserva vem do presente e permite limpeza eficiente quando seu dono sai. MongoDB não oferece chaves estrangeiras automáticas; os serviços verificam referências e coordenam mudanças relacionadas.
 
-Identificadores de domínio serializados como strings; BSON ObjectId no domínio quando adequado, respeitando o formato de IDs do adapter de autenticação. Datas BSON UTC; DTOs com ISO 8601. A Fase 2 consolida nomes e índices do adapter antes de criar coleções. Referências evitam duplicação e arrays ilimitados.
+## Consistência e concorrência
 
-| Coleção | Campos essenciais | Índices e finalidade |
-| --- | --- | --- |
-| `user` | id, name, email normalizado, emailVerified, image opcional, createdAt, updatedAt | email único; nome normalizado para busca por prefixo |
-| `account` | id, userId, providerId, accountId, password hash | índices exigidos pelo adapter; credenciais nunca em DTO público |
-| `session` | id, userId, token, expiresAt, createdAt, updatedAt | token único, userId; TTL expiresAt; validar expiração também na aplicação |
-| `verification` | campos do adapter para verificação/recuperação | índices e TTL conforme versão; nenhuma exposição pública |
-| `gifts` | _id, ownerId, name, description, productUrl, imageUrl, createdAt, updatedAt | ownerId + _id decrescente para paginação sem limite total de presentes (decisão da Fase 3) |
-| `groups` | _id, name, description?, type, adminId, membershipVersion, writeVersion, activeDrawId?, createdAt, updatedAt | adminId; versão para serializar alterações de membros/sorteios |
-| `memberships` | _id, groupId, userId, joinedAt | único (groupId,userId); (userId,groupId) para dashboard e compartilhamento |
-| `reservations` | _id, giftId, groupId, ownerId, reservedBy, drawId? (edição), status, createdAt, updatedAt, cancelledAt? | único parcial (groupId,giftId) onde status=active; (groupId,drawId,status) para invalidação; reservedBy |
-| `draws` | _id (edição), groupId, membershipVersion, status: active/invalidated, createdBy, createdAt, invalidatedAt? | groupId + createdAt; único parcial groupId onde status=active |
-| `assignments` | _id, drawId, giverId, recipientId | únicos (drawId,giverId) e (drawId,recipientId); leitura somente pelo par drawId + usuário da sessão |
+### Grupos e presentes
 
-Participações ficam em coleção própria para busca bidirecional e unicidade sem crescer o documento do grupo. Reservas são separadas para não vazar estado junto do presente ao proprietário. Atribuições são referências separadas: nenhuma rota retorna o conjunto; administrador recebe somente metadados. Não há endpoint para ler atribuição passando um giverId arbitrário. Dados pequenos de valor podem ser incorporados; não copiar listas pessoais para os grupos. IDs de grupos convencionais não aceitam sorteio.
+Criar grupo e incluir criador são atômicos. Toda mutação do grupo disputa sua escrita e relê participação/administração, impedindo uso de poderes antigos após transferência. membershipVersion muda somente com composição; writeVersion coordena também reservas e sorteios, sem aparecer na resposta pública.
 
-### Integridade, concorrência e privacidade
+Reserva/cancelamento disputam grupo e presente. Exclusão de presente disputa a mesma escrita por reservationVersion, cancela reservas em todos os grupos e remove o item em uma transação. Saída/remoção cancela reservas como dono ou reservante somente no grupo afetado. Encerramento cancela remanescentes do grupo.
 
-MongoDB não tem FKs: serviços verificam referências e usam transações para mudanças relacionadas. Requer replica set/Atlas com suporte a transações. Não iniciar sorteios em standalone sem oferecer erro de configuração claro.
+### Amigo secreto
 
-- Criar grupo e primeira participação na mesma transação.
-- Reserva: verificar acesso e dono, inserir com índice único parcial (groupId,giftId), status=active e tratar conflito como indisponível; não usar apenas sequência consultar→inserir. Concorrer reserva com saída, exclusão, invalidação ou novo sorteio exige transação e escrita de versão no recurso de autorização compartilhado (grupo), evitando write skew. A criação da reserva em amigo secreto verifica também activeDrawId e atribuição do reservante dentro da transação. Testar explicitamente esses interleavings na Fase 5.
-- Cancelar reserva filtrando groupId, giftId, status e reservedBy autenticado; somente o reservante cancela manualmente. Cancelamentos sistêmicos por invalidação/saída são transacionais. Excluir presente cancela suas reservas em todos os grupos sem revelar estado ao dono.
-- Toda consulta de lista alheia exige groupId e autorização nesse contexto: grupo convencional permite acesso entre membros; amigo secreto exige sorteio ativo e destinatário igual ao dono da lista. Outro grupo compartilhado não concede acesso ao contexto solicitado. DTO do proprietário omite inclusive campo de disponibilidade. DTO de terceiro autorizado consulta somente as reservas ativas do grupo atual e da edição ativa quando aplicável, e mostra apenas disponível/reservado e `canCancel` calculado, sem identidade do reservante.
-- Sorteio: ler snapshot de membros, exigir pelo menos três (proposta), embaralhar com aleatoriedade criptográfica no servidor e gerar permutação sem pontos fixos; testar invariantes. Não usar Math.random. Não prometer distribuição uniforme se o algoritmo escolhido não a oferecer.
-- Gravar draw + assignments e atualizar activeDrawId com comparação de membershipVersion numa transação. Mutação de membros também escreve a versão do grupo. Conflitos abortam/repetem com limite; erro de concorrência é tratado na interface.
-- Novo sorteio invalida anterior e cancela suas reservas na mesma transação, preservando outros grupos; consultar apenas activeDrawId válido e atribuição do usuário autenticado. Nenhuma atribuição em logs, HTML de outros usuários, payloads coletivos ou cache compartilhado.
-- Busca de usuários por prefixo, paginada, com limites por requisição e projeção mínima (id e nome). Email não é campo público nem parte da busca. Perfil básico de membros exige contexto; listas seguem a autorização específica do tipo de grupo e edição, nunca apenas existência de grupo compartilhado.
+O mínimo é três. Fisher–Yates com crypto.randomInt embaralha os destinatários; permutações com autoatribuição são rejeitadas. Cada pessoa dá e recebe exatamente uma vez. Tentativas são limitadas; falha não publica resultado parcial. Refazer pode repetir pares da edição anterior, pois cada geração é independente.
 
-## Regras definitivas e pontos pendentes
+Iniciar/refazer/cancelar exige administrador e confirmação. A operação escreve o grupo, compara a revisão e composição esperadas e então executa todo o ciclo no mesmo commit: invalidar anterior, cancelar suas reservas, persistir nova edição/atribuições quando aplicável e publicar o ponteiro.
 
-As regras definitivas e a matriz de testes estão em [REGRAS-DE-NEGOCIO.md](REGRAS-DE-NEGOCIO.md). Elas substituem as propostas iniciais sobre acesso por qualquer grupo, reservas globais, persistência de reservas ao refazer e invalidação automática por mudança de membros.
+`drawRevision` só muda com operações de sorteio. Grupos anteriores sem esse campo equivalem à revisão zero. O cliente não recebe writeVersion como marcador de estado, pois ele revelaria atividade de reservas. Um formulário antigo não pode cancelar/refazer uma edição posterior.
 
-- A autorização é contextual por grupo, usuário e edição ativa. Convencionais compartilham listas; amigo secreto restringe ao destinatário após sorteio e bloqueia listas alheias antes dele.
-- Reservas pertencem ao grupo; em amigo secreto pertencem também à edição. Invalidação e novo sorteio cancelam reservas somente da edição afetada, atomicamente.
-- Composição de amigo secreto fica bloqueada durante sorteio ativo, inclusive adições. Somente administrador invalida explicitamente antes de alterar membros.
-- Grupo tem exatamente um administrador, que só transfere para membro atual. Transferência não altera sorteio e não contorna bloqueio de saída.
+Leitura do resultado usa apenas giverId da sessão; edição, perfil e disponibilidade são lidos no mesmo snapshot. Administração não concede leitura de outros resultados. Reserva no amigo secreto exige a edição atual e o destinatário correto.
 
-Pendências restantes (não implementar sem definir): mínimo de participantes (proposta: três), exclusão de conta/retencão de histórico, edição do perfil, política de edição do perfil. Busca autenticada mínima por id/nome; email privado. Proposta de URLs apenas HTTP/HTTPS sem proxy de imagens; descrição em texto simples.
+### Transações
 
-## Plano incremental e critérios de aceite
+Replica set/Atlas é necessário. Operações usam readConcern snapshot e writeConcern majority; o driver gerencia repetição/commit. Callback repetível não tem emails, notificações ou efeitos externos. Falha desfaz ponteiros, atribuições, participações e cancelamentos da operação. Não existe implementação paralela baseada apenas em consultar e depois gravar sem coordenação.
 
-### Fase 1 — Estrutura e configurações (pedido atual)
+## Contratos públicos e segurança
 
-- [x] Inspecionar Git, arquivos, ambiente e regras existentes.
-- [x] Documentar arquitetura, coleções, escolhas, regras pendentes e plano integral.
-- [x] Criar Next.js App Router/TypeScript estrito e página inicial responsiva de apresentação da base, sem botões de funcionalidades inexistentes.
-- [x] Configurar ESLint, Vitest e scripts de validação; adicionar testes primeiro para ambiente e conexão reutilizável.
-- [x] Validar DATABASE_URL sem mostrar valores; conexão lazy server-only com pool e tratamento de falha.
-- [x] Oferecer diagnóstico read-only explícito do banco, sem criar índices/coleções nem alterar registros existentes.
-- [x] Proteger segredos com .gitignore e template sem valores reais; documentar desenvolvimento e Vercel.
-- [x] Executar testes, lint, typecheck, build e auditoria de dependências; registrar resultados e commits.
+- Autor vem da sessão, nunca do formulário. Perfis alheios contêm apenas id/nome.
+- DTO do dono omite estado, identidade, contagem e IDs de reservas; reservar não muda suas datas públicas.
+- Terceiros autorizados recebem somente disponibilidade e canCancel no grupo atual.
+- Convencional compartilhado não concede acesso pelo contexto de outro amigo secreto.
+- Links aceitam HTTP/HTTPS, sem credenciais embutidas ou esquemas executáveis; descrições são texto React.
+- Cookies são HttpOnly, SameSite=Lax e Secure com HTTPS; senha scrypt de 6–128 caracteres, sessão de sete dias.
+- Falhas privadas são sanitizadas; não há URI, senha, token ou resultado coletivo em mensagens/logs.
 
-Autenticação fica recomendada, mas ainda não implementada. Não criar schemas vazios de funcionalidades, migrar banco ou efetuar deploy nesta etapa.
+## Testabilidade e operação
 
-### Fase 2 — Autenticação e usuários
+Testes ficam junto dos módulos. Serviços recebem repositórios substituíveis para testes isolados; integração usa MongoDB real descartável com replica set; E2E usa sessões independentes em desktop/celular. O runner valida URI local de testes, sobrescreve variáveis e nunca usa o banco configurado de produção para escrita automatizada.
 
-Política confirmada pelo usuário: senha de 6–128 caracteres, sessão de 7 dias, sem confirmação nem recuperação de email. TDD de cadastro válido/inválido, email duplicado normalizado, credenciais inválidas, sessão expirada/revogada, acesso anônimo e projeções sem segredos. Integrar Better Auth e índices. Telas cadastro/login/logout/perfil, proteção no servidor e feedback acessível. Testar fluxo HTTP real e cookies; não confiar só no mock da biblioteca.
+Conexão é lazy, com promessa compartilhada por instância, pool máximo de dez conexões e recuperação após falha inicial. Build não exige banco. Vercel usa um projeto Next.js/Node.js, sem processo permanente nem armazenamento local persistente. Previews exigem banco separado e origem/segredo definidos por ambiente; deploy ainda não realizado.
 
-### Fase 3 — Lista pessoal
+## Decisões ainda abertas
 
-Fase implementada: ver [FASE-3.md](FASE-3.md). Imagem é opcional, com ilustração local padrão (decisão do usuário). TDD de criação, edição, exclusão, URLs inseguras, entrada inválida e alteração por terceiro. CRUD filtrado pelo usuário da sessão; paginação sem limite total. Cards com imagem, texto alternativo, descrição e produto em nova aba segura. Estados vazios/loading/error, confirmação de exclusão e feedback. Não exibir disponibilidade ao proprietário.
+Edição de perfil, exclusão de conta/retenção de histórico e preparação final de deploy precisam de definição própria. A revisão final inclui segurança, acessibilidade, limites/custos e configuração por ambiente. Não há alteração silenciosa dessas regras por conveniência de implementação.
 
-### Fase 4 — Grupos e dashboard
-
-Fase implementada: ver [FASE-4.md](FASE-4.md). Último administrador encerra com confirmação e sem sorteio ativo, conforme definição do usuário. Aplicar regras definitivas de administração e bloqueio por sorteio ativo. TDD de criação atômica, inclusão automática, duplicidade, permissões, transferência, remoção e saída. Implementar grupos convencionais e tipo amigo secreto, participantes, busca por nome, edição e dashboard. Acessos sempre filtrados por membership. Criar índices necessários com procedimento explícito e idempotente, sem rodar toda migração a cada request.
-
-### Fase 5 — Compartilhamento e reservas
-
-Fase implementada: ver [FASE-5.md](FASE-5.md). Reservas contextuais, índice único parcial, leitura por snapshot e cancelamento ao perder participação no grupo específico implementados. TDD de consulta autorizada e negada por ID, omissão de estado para dono, reserva própria negada, duas reservas concorrentes, cancelamento por terceiro negado, exclusão/saída concorrente. Testar contra MongoDB real isolado, incluindo índices únicos e transações. UI disponível/reservado e cancelar somente própria reserva, sem revelar reservante.
-
-### Fase 6 — Amigo secreto
-
-Aprovar mínimo de pessoas; aplicar invalidação explícita e novo sorteio com cancelamento atômico das reservas da edição. TDD de invariantes para várias quantidades, insuficiência, não administrador, persistência, leitura alheia negada, novo sorteio e concorrência com membros/sorteios/reservas. Executar todos os cenários adicionais da matriz em REGRAS-DE-NEGOCIO.md. Seção Meu amigo secreto com nome/perfil/lista e disponibilidade; confirmação antes de refazer. Admin sem relatório coletivo de atribuições.
-
-### Fase 7 — Finalização e preparação de deploy
-
-Revisar IDOR, DTOs, sessões, XSS, CSRF, URLs, logs e rate limiting distribuído. E2E com múltiplas sessões no navegador para cadastro→grupo→reserva→sorteio. Revisar teclado, foco, contraste, touch e tamanhos mobile/desktop. Rodar testes, lint, typecheck e build. Documentar variáveis Vercel, região próxima ao Atlas, rede/TLS, pools e orçamento. O usuário definiu o banco existente como produção. Testes sempre usam MongoDB descartável; previews de deploy ainda precisam de banco separado e não devem receber a URI de produção automaticamente. Deploy/publicação será uma etapa explícita posterior.
-
-## TDD, Git e validação
-
-Cada comportamento: escrever teste → executar e registrar falha esperada → implementar mínimo → executar verde → refatorar → executar novamente. Testes de integração usam banco dedicado com replica set, URI separada e proteção contra banco de produção. Não limpar banco da DATABASE_URL existente. E2E com dados descartáveis. Não criar testes que apenas repitam o JSX ou constantes.
-
-Commits Conventional Commits em unidades verificadas, com push quando autorizado na sessão: planejamento/configuração, testes de infraestrutura e implementação da base. Antes de cada commit executar verificações pertinentes; no fim da fase rodar conjunto completo. Nunca usar `git add .` sem inspeção de segredos. O lockfile será versionado; CI usará pnpm install --frozen-lockfile.
-
-Cada entrega informa resultado, arquivos principais com links, testes e limitações, hashes dos commits e próxima fase. Adotamos esse formato de revisão também nas próximas entregas.
-
-## Referências oficiais consultadas
+## Referências oficiais
 
 - Next.js / App Router: <https://nextjs.org/docs/app/getting-started/installation>
-- Driver MongoDB / conexões: <https://www.mongodb.com/docs/drivers/node/current/connect/>
+- Driver MongoDB: <https://www.mongodb.com/docs/drivers/node/current/connect/>
 - Pool MongoDB: <https://www.mongodb.com/docs/drivers/node/current/connect/connection-options/connection-pools/>
-- Better Auth / instalação: <https://better-auth.com/docs/installation>
-- Better Auth / email e senha: <https://github.com/better-auth/better-auth/blob/main/docs/content/docs/authentication/email-password.mdx>
-- Better Auth / adapter: <https://github.com/better-auth/better-auth/blob/main/docs/content/docs/adapters/mongo.mdx>
+- Better Auth: <https://better-auth.com/docs/installation>
 
-Revalidar integração e requisitos das bibliotecas na fase que efetivamente as utiliza.
+Consulte também as instruções da versão instalada em node_modules/next/dist/docs ao modificar o framework. O histórico de implementação fica separado em `docs/historico`; não substitui o código, os testes ou as regras atuais.

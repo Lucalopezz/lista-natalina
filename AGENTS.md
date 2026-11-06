@@ -3,7 +3,7 @@
 ## Leitura e escopo
 
 - Leia [CONTEXT.md](CONTEXT.md) antes de alterar a aplicação e consulte a documentação do módulo afetado.
-- Use [docs/PLANO.md](docs/PLANO.md) para arquitetura/fases e [docs/REGRAS-DE-NEGOCIO.md](docs/REGRAS-DE-NEGOCIO.md) para regras definitivas. O complemento definitivo prevalece sobre propostas anteriores. Instruções atuais do usuário prevalecem sobre estes documentos.
+- Use [docs/PLANO.md](docs/PLANO.md) para arquitetura/modelagem e [docs/REGRAS-DE-NEGOCIO.md](docs/REGRAS-DE-NEGOCIO.md) para regras definitivas. O complemento definitivo prevalece sobre propostas anteriores. Instruções atuais do usuário prevalecem sobre estes documentos.
 - Continue do checkout existente. Preserve alterações do usuário e não reinicie estruturas já corretas.
 - Implemente incrementalmente. Ao concluir a fase autorizada, apresente o resultado e aguarde a próxima etapa. Não implemente comportamentos cujas regras essenciais ainda estejam pendentes.
 
@@ -15,6 +15,7 @@
 - Explique decisões e alternativas relevantes proporcionalmente à mudança. Não transforme uma alteração pequena em relatório extenso.
 - Informe verificações realmente executadas, resultados, limitações, commit criado e próxima etapa. Diferencie implementação, planejamento e validação real.
 - Quando houver uma rota nova, explique entrada, resposta, erros e como verificá-la quando isso ajudar na revisão.
+- Organize README e guias principais por funcionalidades, uso e arquitetura; histórico de entregas fica separado, sem apresentar o produto por fases.
 - Não atribua ao perfil global preferências inferidas de um único projeto. Considere histórico como contexto, e não como prova do estado atual.
 
 ## Comentários no código — prioridade de legibilidade
@@ -79,7 +80,7 @@ Exemplo do nível de explicação esperado para uma futura operação de reserva
 - Faça commits pequenos por unidade funcional, usando Conventional Commits: `feat`, `fix`, `test`, `refactor`, `docs`, `chore` etc.
 - O título deve explicar a mudança concreta. Evite juntar alterações independentes ou criar commits que afirmem entregar funcionalidade ainda ausente.
 - Revise diff e arquivos preparados, preservando alterações não relacionadas. Nunca versionar `.env`, node_modules, builds, cobertura ou segredos.
-- O usuário autorizou o avanço incremental até a Fase 5, incluindo commits/push, após a revisão da interface e da documentação técnica. Faça push dos commits dessa entrega após validar; deploy/publicação da aplicação continua fora do escopo. Em novas tarefas, siga o escopo autorizado pelo usuário.
+- O usuário autorizou o avanço incremental até amigo secreto, incluindo commits/push e reorganização da documentação. Faça push dos commits dessa entrega após validar; deploy/publicação da aplicação continua fora do escopo. Em novas tarefas, siga o escopo autorizado pelo usuário.
 - Ao encerrar uma fase, atualize o contexto quando o estado, as decisões ou as pendências tiverem mudado. Não registre sucesso sem a verificação correspondente.
 
 ## Origem das preferências
