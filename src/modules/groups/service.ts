@@ -103,7 +103,7 @@ export function createGroupService(repository: GroupRepository) {
         // Transferir a administração não pode deixar uma busca em andamento
         // consultar cadastros de um estado posterior à autorização daquele autor.
         admin(await readable(unit, userId, groupId), userId);
-        if (!parsed.data.q) return { items: [], nextCursor: null };
+        if (parsed.data.q.normalize("NFD").replace(/\p{M}/gu, "").length < 2) return { items: [], nextCursor: null };
         return publicMembers(await unit.searchCandidates(groupId, parsed.data.q, parsed.data.cursor));
       });
     },

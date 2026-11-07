@@ -118,7 +118,10 @@ describe("regras dos grupos", () => {
   });
   it("busca vazia não consulta diretório e cursores inválidos são rejeitados", async () => {
     expect((await service.search(admin, id, { q: " " })).items).toEqual([]);
+    expect((await service.search(admin, id, { q: "á" })).items).toEqual([]);
     expect(reads.searchCandidates).not.toHaveBeenCalled();
+    await expect(service.search(member, id, { q: "" })).rejects.toMatchObject({ code: "forbidden" });
+    await expect(service.search(admin, id, { q: "Ana", cursor: `2:${member}` })).rejects.toMatchObject({ code: "invalid" });
     await expect(service.list(admin, { cursor: "invalid" })).rejects.toMatchObject({ code: "invalid" });
   });
   it.each([null, "", "invalid"])("nega usuário não autenticado", async (actor) => {

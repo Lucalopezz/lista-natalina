@@ -2,6 +2,7 @@ import "server-only";
 import { MongoServerError, ObjectId, type ClientSession, type Db, type MongoClient } from "mongodb";
 import { cancelActiveReservations } from "../reservations/persistence";
 import { GroupError } from "./service";
+import { buildNameSearch } from "./name-search";
 import type { Group, GroupChanges, GroupReads, GroupRepository, GroupTransaction, Member, Page } from "./types";
 
 type GroupDocument = Omit<Group, "id" | "adminId" | "activeDrawId"> & { _id: ObjectId; adminId: ObjectId; activeDrawId: ObjectId | null };
@@ -103,18 +104,26 @@ export function createMongoGroupRepository(db: Db, client: MongoClient): GroupRe
         return page(documents, pageSize, (member) => member.id);
       }),
       searchCandidates: (groupId, query, cursor) => safe(async () => {
-        const literalPrefix = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const documents = await db.collection("user").aggregate<Member>([
-          { $match: { name: { $regex: `^${literalPrefix}`, $options: "i" }, ...(cursor ? { _id: { $gt: oid(cursor) } } : {}) } },
-          { $sort: { _id: 1 } },
+        const patterns = buildNameSearch(query);
+        if (!patterns) return { items: [], nextCursor: null };
+        const [rank, lastId] = cursor?.split(":") ?? [];
+        const documents = await db.collection("user").aggregate<Member & { rank: number }>([
+          { $match: { $and: patterns.tolerant.map((regex) => ({ name: { $regex: regex, $options: "i" } })) } },
+          // Correspondências literais vêm antes das aproximações. O ID desempata
+          // e acompanha a relevância no cursor. O perfil devolvido continua id/nome,
+          // sem acrescentar os campos internos usados para ordenar os resultados.
+          { $set: { rank: { $cond: [{ $and: patterns.exact.map((regex) => ({ $regexMatch: { input: "$name", regex, options: "i" } })) }, 0, 1] } } },
+          ...(cursor ? [{ $match: { $or: [{ rank: { $gt: Number(rank) } }, { rank: Number(rank), _id: { $gt: oid(lastId) } }] } }] : []),
+          { $sort: { rank: 1, _id: 1 } },
           { $lookup: { from: "memberships", let: { user: "$_id" }, pipeline: [
             { $match: { $expr: { $and: [{ $eq: ["$groupId", oid(groupId)] }, { $eq: ["$userId", "$$user"] }] } } },
             { $project: { _id: 1 } }, { $limit: 1 },
           ], as: "alreadyMember" } },
           { $match: { "alreadyMember.0": { $exists: false } } }, { $limit: 21 },
-          { $project: { _id: 0, id: { $toString: "$_id" }, name: 1 } },
+          { $project: { _id: 0, id: { $toString: "$_id" }, name: 1, rank: 1 } },
         ], { maxTimeMS: 2000, session }).toArray();
-        return page(documents, 20, (user) => user.id);
+        const visible = documents.slice(0, 20), last = visible.at(-1);
+        return { items: visible.map(({ id, name }) => ({ id, name })), nextCursor: documents.length > 20 && last ? `${last.rank}:${last.id}` : null };
       }),
     };
   }

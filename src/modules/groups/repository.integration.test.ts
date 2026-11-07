@@ -56,11 +56,38 @@ describe("grupos no MongoDB real", () => {
   });
   it("pesquisa escapa regex, exclui membros e não retorna dados privados", async () => {
     const group = await create();
-    expect((await service.search(A, group.id, { q: ".*" })).items).toEqual([]);
+    expect((await service.search(A, group.id, { q: ".*" })).items).toEqual([{ id: regexUser.toHexString(), name: "Regex.*Pessoa" }]);
     const result = await service.search(A, group.id, { q: "regex.*" });
     expect(result.items).toEqual([{ id: regexUser.toHexString(), name: "Regex.*Pessoa" }]);
     expect((await service.search(A, group.id, { q: "Ana" })).items).toEqual([]);
     await expect(service.search(B, group.id, { q: "Ana" })).rejects.toMatchObject({ code: "not_found" });
+  });
+  it("encontra nome do meio, acentos e um erro, com correspondências literais primeiro", async () => {
+    const group = await create();
+    // A ordem de inserção é inversa à relevância: ordenar apenas por ID faria
+    // a aproximação aparecer antes da pessoa cujo nome contém o termo digitado.
+    const approximate = { _id: new ObjectId(), name: "João Marila de Ávila" };
+    const exact = { _id: new ObjectId(), name: "José Mariela de Ávila" };
+    await db.collection("user").insertMany([approximate, exact]);
+    expect((await service.search(A, group.id, { q: "avila" })).items.map((m) => m.id)).toEqual([approximate._id, exact._id].map(String));
+    expect((await service.search(A, group.id, { q: "mariela" })).items).toEqual([exact, approximate].map((u) => ({ id: String(u._id), name: u.name })));
+    expect((await service.search(A, group.id, { q: "avila jsoe" })).items).toEqual([{ id: String(exact._id), name: exact.name }]);
+    expect((await service.search(A, group.id, { q: "á" })).items).toEqual([]);
+    await service.add(A, group.id, String(exact._id));
+    expect((await service.search(A, group.id, { q: "mariela" })).items).toEqual([{ id: String(approximate._id), name: approximate.name }]);
+  });
+  it("pagina da correspondência literal para aproximada sem perder ou repetir pessoas", async () => {
+    const group = await create();
+    const approximate = Array.from({ length: 23 }, () => ({ _id: new ObjectId(), name: "Pessoa Mirabela" }));
+    const exact = Array.from({ length: 23 }, () => ({ _id: new ObjectId(), name: "Pessoa Marabela" }));
+    await db.collection("user").insertMany([...approximate, ...exact]);
+    const first = await service.search(A, group.id, { q: "marabela" });
+    expect(first.items.map((u) => u.id)).toEqual(exact.slice(0, 20).map((u) => String(u._id)));
+    const second = await service.search(A, group.id, { q: "marabela", cursor: first.nextCursor });
+    expect(second.items.map((u) => u.id)).toEqual([...exact.slice(20), ...approximate.slice(0, 17)].map((u) => String(u._id)));
+    const third = await service.search(A, group.id, { q: "marabela", cursor: second.nextCursor });
+    expect(third.items.map((u) => u.id)).toEqual(approximate.slice(17).map((u) => String(u._id)));
+    expect(third.nextCursor).toBeNull();
   });
   it("não membro não consulta nem altera grupo; membro comum não administra", async () => {
     const group = await create();
