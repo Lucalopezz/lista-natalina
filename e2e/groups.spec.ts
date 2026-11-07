@@ -16,7 +16,7 @@ async function add(page: Page, name: string) {
   await page.getByRole("button", { name: "Pesquisar", exact: true }).click();
   const result = page.getByRole("list", { name: "Resultados da pesquisa" }).getByRole("listitem").filter({ hasText: name });
   await result.getByRole("button", { name: "Adicionar", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Participante adicionado.");
+  await expect(page.getByRole("status", { name: "Atualização do grupo" })).toHaveText("Participante adicionado.");
 }
 async function confirm(page: Page, trigger: string, name?: string) {
   const source = name ? page.getByRole("list", { name: "Participantes" }).getByRole("listitem").filter({ hasText: name }) : page;

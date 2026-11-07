@@ -26,7 +26,7 @@ async function createGroup(page: Page, name: string, secret = true) {
 async function add(page: Page, name: string) {
   await page.getByLabel("Pesquisar pessoas pelo nome").fill(name); await page.getByRole("button", { name: "Pesquisar", exact: true }).click();
   await page.getByRole("list", { name: "Resultados da pesquisa" }).getByRole("listitem").filter({ hasText: name }).getByRole("button", { name: "Adicionar", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Participante adicionado.");
+  await expect(page.getByRole("status", { name: "Atualização do grupo" })).toHaveText("Participante adicionado.");
 }
 async function confirm(page: Page, operation: string) {
   await page.getByRole("button", { name: operation, exact: true }).click();
@@ -46,7 +46,7 @@ test("amigo secreto: mínimo, resultado privado, refazer, reservas e invalidaç�
     await page.getByRole("dialog").getByRole("button", { name: "Voltar", exact: true }).click();
     await expect(page.getByRole("link", { name: "Meu amigo secreto", exact: true })).toHaveCount(0);
     await confirm(page, "Realizar sorteio");
-    await expect(page.getByRole("status")).toHaveText("Sorteio realizado. Cada pessoa já pode consultar seu amigo secreto.");
+    await expect(page.getByRole("status", { name: "Atualização do grupo" })).toHaveText("Sorteio realizado. Cada pessoa já pode consultar seu amigo secreto.");
     await expect(page.getByLabel("Pesquisar pessoas pelo nome")).toHaveCount(0);
     const resultUrl = `${url}/amigo-secreto`;
     const recipients: string[] = [];
@@ -77,7 +77,7 @@ test("amigo secreto: mínimo, resultado privado, refazer, reservas e invalidaç�
     await page.getByRole("dialog").getByRole("button", { name: "Voltar", exact: true }).click();
     await page.goto(resultUrl); await expect(page.getByRole("button", { name: "Cancelar minha reserva", exact: true })).toBeVisible();
     await page.goto(url); await confirm(page, "Refazer sorteio");
-    await expect(page.getByRole("status")).toHaveText("Sorteio refeito. Consulte seu novo resultado.");
+    await expect(page.getByRole("status", { name: "Atualização do grupo" })).toHaveText("Sorteio refeito. Consulte seu novo resultado.");
     await page.goto(resultUrl); await expect(page.getByText("Disponível neste grupo", { exact: true })).toBeVisible();
     await page.screenshot({ path: `test-results/${test.info().project.name}-amigo-secreto.png`, fullPage: true });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -88,7 +88,7 @@ test("amigo secreto: mínimo, resultado privado, refazer, reservas e invalidaç�
     await page.goto("/amigos-secretos");
     await expect(page.getByRole("navigation", { name: "Menu principal" }).getByRole("link", { name: "Meus grupos", exact: true })).toHaveAttribute("aria-current", "page", { timeout: 2000 });
     await page.goto(url); await confirm(page, "Cancelar sorteio");
-    await expect(page.getByRole("status")).toHaveText("Sorteio cancelado. As reservas deste sorteio também foram canceladas.");
+    await expect(page.getByRole("status", { name: "Atualização do grupo" })).toHaveText("Sorteio cancelado. As reservas deste sorteio também foram canceladas.");
     await c.goto(resultUrl); await expect(c.getByText("O grupo está sem sorteio.", { exact: true })).toBeVisible();
     await c.goto(url); await confirm(c, "Sair do grupo");
     await expect(c).toHaveURL(/\/grupos\?status=saida$/);

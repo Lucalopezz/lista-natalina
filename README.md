@@ -9,6 +9,7 @@ Produção: https://lista-natalina.vercel.app
 - Cadastro, login, logout e sessão persistida.
 - Lista pessoal de presentes com imagem opcional e ilustração padrão.
 - Grupos com inclusão direta de usuários, sem convite ou aceite.
+- Pesquisa de pessoas enquanto digita, por partes do nome, sem acentos e com tolerância a pequenos erros.
 - Listas compartilhadas e reservas independentes por grupo.
 - Amigo secreto com no mínimo três participantes e resultado individual privado.
 - Novo sorteio e cancelamento do sorteio, com invalidação dos resultados e reservas da edição anterior.

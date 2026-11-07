@@ -1,6 +1,6 @@
 # Contexto central — Lista Natalina
 
-Atualizado em 06/11/2026. Confira código, Git e verificações atuais antes de concluir que um registro anterior permanece válido. Regras de trabalho: [AGENTS.md](AGENTS.md).
+Atualizado em 07/11/2026. Confira código, Git e verificações atuais antes de concluir que um registro anterior permanece válido. Regras de trabalho: [AGENTS.md](AGENTS.md).
 
 ## Objetivo e fontes
 
@@ -14,6 +14,7 @@ Fontes: instruções atuais do usuário; [regras de negócio](docs/REGRAS-DE-NEG
 - Lista pessoal completa, edição/exclusão apenas pelo dono, paginação de 24 sem limite total.
 - Imagem opcional com ilustração local padrão, inclusive em falha de carregamento.
 - Grupos convencionais e amigo secreto; inclusão direta sem convite; administração, remoção, saída e transferência.
+- Pesquisa interativa de pessoas a partir de dois caracteres: partes do nome, acentos portugueses e um erro em palavras de 4–32 letras. Correspondências literais primeiro, depois aproximadas; cursor por relevância/ID, páginas de 20 e limite de dois segundos. Sem migração nem dependência de pesquisa externa.
 - Listas autorizadas por contexto e reservas independentes por grupo, com cancelamento sistêmico ao perder acesso.
 - Sorteio mínimo de três, resultado individual, novo sorteio e invalidação com cancelamento transacional das reservas da edição.
 - Dashboard com resultados ativos, páginas responsivas e testes desktop/celular.
@@ -35,6 +36,8 @@ Fontes: instruções atuais do usuário; [regras de negócio](docs/REGRAS-DE-NEG
 | e2e e scripts/test-auth.sh | Navegador e MongoDB descartável |
 
 Páginas são Server Components; formulários, diálogos, menu ativo e fallback de imagem são Client Components. Auth usa Route Handlers; alterações de domínio usam Server Actions autenticadas. Serviços recebem repositórios para testes. Não enviar algoritmo, conexão ou resultados coletivos ao navegador.
+
+MemberSearch é cliente, espera 300 ms de pausa e usa GET /api/grupos/[id]/pessoas?q=...&cursor=..., com sessão/admin validados no serviço e private/no-store. Aborta requisições anteriores e ignora respostas atrasadas. Incluir pessoa continua na Action existente; mudança de memberCount remonta a busca para retirar resultados anteriores à inclusão. Não substituir a autorização contextual por filtro apenas no navegador.
 
 ## Regras confirmadas
 

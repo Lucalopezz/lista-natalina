@@ -5,13 +5,14 @@ import { getGroupService } from "@/modules/groups/server";
 import { getSecretSantaService } from "@/modules/secret-santa/server";
 import { DrawControls } from "@/modules/secret-santa/components/draw-controls";
 import { GroupError } from "@/modules/groups/service";
-import { candidateQuerySchema, groupPageSchema } from "@/modules/groups/validation";
+import { groupPageSchema } from "@/modules/groups/validation";
 import { GroupOperationButton } from "@/modules/groups/components/group-operation-button";
+import { MemberSearch } from "@/modules/groups/components/member-search";
 import type { GroupView, Member, Page } from "@/modules/groups/types";
 
 export const metadata = { title: "Grupo | Lista Natalina" };
 const feedback: Record<string, string> = { criado: "Grupo criado.", atualizado: "Grupo atualizado.", participante_adicionado: "Participante adicionado.", participante_removido: "Participante removido.", administracao_transferida: "Administração transferida.", sorteado: "Sorteio realizado. Cada pessoa já pode consultar seu amigo secreto.", sorteio_refeito: "Sorteio refeito. Consulte seu novo resultado.", sorteio_cancelado: "Sorteio cancelado. As reservas deste sorteio também foram canceladas." };
-type Query = { q?: string | string[]; membersCursor?: string | string[]; searchCursor?: string | string[]; status?: string | string[] };
+type Query = { q?: string | string[]; membersCursor?: string | string[]; status?: string | string[] };
 export default async function GroupPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Query> }) {
   const user = await requireCurrentUser();
   const { id } = await params;
@@ -25,10 +26,6 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
   const { group, members } = detail;
   const isAdmin = group.adminId === user.id;
   const drawStatus = group.type === "secret_santa" ? await (await getSecretSantaService()).status(user.id, group.id) : null;
-  const search = candidateQuerySchema.safeParse({ q: query.q ?? "", cursor: query.searchCursor });
-  let candidates: Page<Member> = { items: [], nextCursor: null };
-  // A condição só controla apresentação. service.search também exige admin no backend.
-  if (isAdmin && !group.hasActiveDraw && search.success && search.data.q) candidates = await service.search(user.id, group.id, search.data);
   const status = typeof query.status === "string" && Object.hasOwn(feedback, query.status) ? feedback[query.status] : null;
   return (
     <section className="max-w-3xl py-8">
@@ -38,29 +35,12 @@ export default async function GroupPage({ params, searchParams }: { params: Prom
       {group.description && <p className="mt-4 leading-relaxed whitespace-pre-line wrap-anywhere">{group.description}</p>}
       <p className="mt-4 font-bold">{isAdmin ? "Você administra este grupo." : "Você participa deste grupo."}</p>
       {isAdmin && <Link href={`/grupos/${group.id}/editar`} className="mt-3 inline-flex min-h-12 items-center rounded-lg border border-ink px-4 py-3 text-base underline underline-offset-4">Editar grupo</Link>}
-      {status && <p role="status" className="mt-6 rounded-lg border border-ink bg-soft p-4">{status}</p>}
+      {status && <p role="status" aria-label="Atualização do grupo" className="mt-6 rounded-lg border border-ink bg-soft p-4">{status}</p>}
       {drawStatus?.hasActiveDraw && <Link href={`/grupos/${group.id}/amigo-secreto`} className="mt-5 flex min-h-12 items-center justify-center rounded-lg bg-ink px-5 py-3 font-bold text-white">Meu amigo secreto</Link>}
       {isAdmin && drawStatus && <DrawControls groupId={group.id} status={drawStatus} />}
       {group.hasActiveDraw && <p className="mt-6 rounded-lg border border-gold bg-field p-4 leading-relaxed">O sorteio já foi feito. Ninguém pode entrar ou sair do grupo agora. Para mudar os participantes, o administrador precisa cancelar o sorteio atual. A administração ainda pode ser transferida.</p>}
 
-      {isAdmin && !group.hasActiveDraw && (
-        <section aria-labelledby="search-title" className="mt-8 rounded-xl border border-line bg-field p-5 sm:p-6">
-          <h2 id="search-title" className="text-2xl font-bold">Adicionar pessoas</h2>
-          <p className="mt-3 leading-relaxed text-muted">A pessoa precisa ter uma conta. Digite o nome dela, pesquise e use “Adicionar”.</p>
-          <form action={`/grupos/${group.id}`} method="get" className="mt-5 grid gap-3">
-            <label htmlFor="member-search" className="font-bold">Pesquisar pessoas pelo nome</label>
-            <input id="member-search" name="q" type="search" defaultValue={typeof query.q === "string" ? query.q : ""} maxLength={100} placeholder="Digite o começo do nome" className="min-h-12 w-full rounded-lg border border-[#8c998d] bg-field p-3 text-base" />
-            <button type="submit" className="min-h-12 rounded-lg bg-ink px-5 py-3 text-base font-bold text-white hover:bg-ink/90 sm:justify-self-start">Pesquisar</button>
-          </form>
-          {!search.success && <p className="mt-4 text-error" role="alert">Use até 100 caracteres e uma página válida para pesquisar.</p>}
-          {search.success && search.data.q && (candidates.items.length ? (
-            <ul aria-label="Resultados da pesquisa" className="mt-5 divide-y divide-line">
-              {candidates.items.map((candidate) => <li key={candidate.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><p className="min-w-0 font-bold wrap-anywhere">{candidate.name}</p><GroupOperationButton operation="add" groupId={group.id} participantId={candidate.id} participantName={candidate.name} /></li>)}
-            </ul>
-          ) : <p className="mt-5 leading-relaxed text-muted">Nenhuma pessoa encontrada. Confira o começo do nome. Pessoas que já estão no grupo não aparecem nesta pesquisa.</p>)}
-          {candidates.nextCursor && search.success && <Link href={`/grupos/${group.id}?q=${encodeURIComponent(search.data.q)}&searchCursor=${candidates.nextCursor}`} className="mt-3 inline-flex min-h-12 items-center py-3 font-bold underline underline-offset-4">Ver mais resultados</Link>}
-        </section>
-      )}
+      {isAdmin && !group.hasActiveDraw && <MemberSearch key={`${group.id}:${group.memberCount}`} groupId={group.id} initialQuery={typeof query.q === "string" ? query.q.slice(0, 100) : ""} />}
 
       {group.type === "secret_santa" && !group.hasActiveDraw && <p className="mt-6 rounded-lg border border-line bg-field p-4 leading-relaxed">As listas de outras pessoas ficam fechadas até o sorteio. Depois, você verá apenas a lista da pessoa que tirar.</p>}
       <section aria-labelledby="members-title" className="mt-8">

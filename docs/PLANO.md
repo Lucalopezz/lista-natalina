@@ -22,6 +22,8 @@ Em cada módulo, `validation.ts` valida entrada; `service.ts` aplica autorizaç�
 
 Fluxo de alteração: formulário → Server Action → sessão e validação → serviço → repositório → DTO explícito. Leituras podem chamar serviços diretamente de Server Components, sem API HTTP intermediária. Auth usa Route Handlers para preservar cookies e rate limiting do Better Auth.
 
+Busca interativa de candidatos usa GET /api/grupos/[id]/pessoas, privado e sem cache. Somente o campo de busca é cliente; o adaptador chama o mesmo serviço autorizado em snapshot. Aceita trechos, acentos portugueses e um erro em palavras de 4–32 letras, ordenando correspondências literais antes das aproximações. Cursor inclui relevância e ID; páginas de 20 e maxTimeMS de dois segundos limitam resposta e execução, sem garantir uso eficiente de índice para busca aproximada em diretórios grandes.
+
 ## Servidor e navegador
 
 - Páginas/layouts são Server Components por padrão. Leem identidade e dados no servidor.

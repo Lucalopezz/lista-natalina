@@ -337,7 +337,13 @@ Não coloque envio de email ou outro efeito externo dentro desse callback: ele p
 
 ### Pesquisa e leitura segura
 
-A busca para adicionar usuários exige administrador, usa prefixo literal do nome, paginação e tempo máximo de consulta. Caracteres de regex são escapados. Busca vazia não abre um diretório de contas.
+A busca para adicionar usuários exige administrador e pelo menos dois caracteres. Aceita qualquer parte do nome, inclusive do meio, sem diferenciar maiúsculas ou acentos portugueses. Cada palavra precisa corresponder ao nome, em qualquer ordem. Em palavras de 4–32 letras, tolera um erro: letra omitida, acrescentada, substituída ou duas letras vizinhas invertidas. A aproximação começa numa palavra e aceita nome incompleto; trechos literais podem aparecer em qualquer posição. Termos curtos ou com pontuação ficam literais para evitar sugestões excessivas ou interpretação de regex enviada pelo cliente.
+
+[name-search.ts](../src/modules/groups/name-search.ts) monta os padrões no servidor. Expansões acima de oito mil caracteres passam a usar somente a correspondência literal, evitando erro de compilação de regex no MongoDB; nomes longos continuam pesquisáveis. O repositório ordena correspondências literais antes das aproximadas. O cursor combina essa ordem com o ID, para não perder nem repetir pessoas ao atravessar os dois tipos de resultado. Quem já participa é excluído antes de limitar a página a 20 candidatos. O tempo máximo da consulta continua sendo dois segundos; não há campo novo, migração ou dependência de Atlas Search. Busca parcial/aproximada pode examinar mais nomes que a antiga busca por prefixo; não foi feito ensaio de carga em um diretório grande.
+
+[MemberSearch](../src/modules/groups/components/member-search.tsx) é o componente cliente: espera 300 ms após a digitação, consulta somente os candidatos e mantém o restante da página no servidor. Cancelamento e revisão da requisição impedem resposta antiga de substituir a pesquisa atual. “Pesquisar” permite repetir a busca, “Ver mais resultados” acrescenta a página seguinte e “Limpar pesquisa” devolve foco ao campo. A inclusão continua usando a Server Action existente e revalida o grupo.
+
+`GET /api/grupos/[id]/pessoas?q=aparc` retorna `{ items: [{ id, name }], nextCursor }`. `cursor` é opcional e deve ser o valor devolvido pela página anterior. Sessão e papel são conferidos no backend em todas as requisições. Retornos: 401 sem sessão, 403 para participante sem administração, 404 para grupo inacessível, 400 para entrada inválida e 503 para indisponibilidade. Respostas usam `private, no-store` e não incluem email, senha ou resultados de sorteios. O adaptador está em [search-http.ts](../src/modules/groups/search-http.ts).
 
 Repositório e serviço retornam apenas `{ id, name }` para outras pessoas. Email não é público. A leitura do grupo exige participação. Os testes verificam que um repositório falso retornando campos extras também não faz o serviço vazar email/senha.
 
@@ -588,6 +594,7 @@ Refazer invalida o resultado atual e cancela suas reservas, cria uma edição co
 | Cards de grupo, presente e acesso ao resultado | Server Component | Apresentação sem estado/eventos próprios |
 | `AccountNav` | Client Component | usePathname para indicar a seção atual |
 | `AuthForm`, `GiftForm`, `GroupForm` | Client Component | Estado, envio, validação visual e feedback |
+| `MemberSearch` | Client Component | Digitação, pausa de 300 ms, cancelamento e paginação da pesquisa privada |
 | `DrawControls` e botões de reserva/exclusão | Client Component | Diálogo, confirmação e envio pendente |
 | `actions.ts` | Servidor | Receber alterações e validar sessão/permissão em cada chamada |
 | Algoritmo, serviços e repositórios | Chamados no servidor | Segredos, aleatoriedade e transações MongoDB |

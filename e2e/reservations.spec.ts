@@ -21,7 +21,7 @@ async function add(page: Page, name: string) {
   await page.getByLabel("Pesquisar pessoas pelo nome").fill(name);
   await page.getByRole("button", { name: "Pesquisar", exact: true }).click();
   await page.getByRole("list", { name: "Resultados da pesquisa" }).getByRole("listitem").filter({ hasText: name }).getByRole("button", { name: "Adicionar", exact: true }).click();
-  await expect(page.getByRole("status")).toHaveText("Participante adicionado.");
+  await expect(page.getByRole("status", { name: "Atualização do grupo" })).toHaveText("Participante adicionado.");
 }
 
 test("reservas: privacidade do dono, cancelamento, grupos independentes e perda de acesso", async ({ page, browser, baseURL }) => {
