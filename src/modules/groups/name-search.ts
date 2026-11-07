@@ -13,8 +13,9 @@ function atom(character: string) {
  * Para palavras de 4–32 letras, acrescenta até uma inserção, omissão, troca ou
  * inversão adjacente. A aproximação começa numa palavra e admite nome incompleto;
  * termos curtos permanecem literais para não produzir sugestões quase aleatórias.
- * Acima de 32 letras, a busca também é literal: expandir cada posição aumenta o
- * tamanho dos padrões quadraticamente. O repositório ainda limita o tempo da consulta.
+ * A expansão cresce quadraticamente. Acima de 32 letras ou 8 mil caracteres de
+ * padrão, mantém só a parte literal, evitando o limite de compilação do MongoDB.
+ * O repositório também limita o tempo da consulta.
  * Não exige campos novos, migração do banco real ou serviço externo de pesquisa.
  */
 export function buildNameSearch(query: string): { exact: string[]; tolerant: string[] } | null {
@@ -36,7 +37,8 @@ export function buildNameSearch(query: string): { exact: string[]; tolerant: str
     variants.add(atoms.join("") + letter);
     // O limite é de palavra apenas na aproximação. A parte literal continua
     // encontrando, por exemplo, “parec” no meio de “Aparecida”. Não há .* livre.
-    return `(?:${exact[index]}|(?:^|[^\\p{L}\\p{N}\\p{M}])(?:${[...variants].join("|")}))`;
+    const pattern = `(?:${exact[index]}|(?:^|[^\\p{L}\\p{N}\\p{M}])(?:${[...variants].join("|")}))`;
+    return pattern.length <= 8000 ? pattern : exact[index];
   });
   return { exact, tolerant };
 }

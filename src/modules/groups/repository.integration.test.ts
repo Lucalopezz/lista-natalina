@@ -73,6 +73,7 @@ describe("grupos no MongoDB real", () => {
     expect((await service.search(A, group.id, { q: "mariela" })).items).toEqual([exact, approximate].map((u) => ({ id: String(u._id), name: u.name })));
     expect((await service.search(A, group.id, { q: "avila jsoe" })).items).toEqual([{ id: String(exact._id), name: exact.name }]);
     expect((await service.search(A, group.id, { q: "á" })).items).toEqual([]);
+    expect((await service.search(A, group.id, { q: "aeiou".repeat(6) + "ae" })).items).toEqual([]);
     await service.add(A, group.id, String(exact._id));
     expect((await service.search(A, group.id, { q: "mariela" })).items).toEqual([{ id: String(approximate._id), name: approximate.name }]);
   });
